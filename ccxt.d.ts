@@ -239,6 +239,7 @@ declare module 'ccxt' {
         hasFetchOpenOrders: boolean;
         hasFetchClosedOrders: boolean;
         hasFetchMyTrades: boolean;
+        hasFetchDepositAddress: boolean;
         hasDeposit: boolean;
         hasWithdraw: boolean;
         hasCreateOrder: boolean;
