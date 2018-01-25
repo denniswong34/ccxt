@@ -538,7 +538,7 @@ module.exports = class kucoin extends Exchange {
         return this.parseTradingViewOHLCVs (response, market, timeframe, since, limit);
     }
 
-    async fetchDepositAddress (currency, params = {}) {
+    async fetchDepositAddress (code, params = {}) {
         let currency = this.currency (code);
         let response = await this.privateGetAccountCoinWalletAddress (this.extend ({
             'coin': currency['id']
