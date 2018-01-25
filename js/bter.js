@@ -19,6 +19,7 @@ module.exports = class bter extends Exchange {
                 'CORS': false,
                 'fetchTickers': true,
                 'withdraw': true,
+                'fetchDepositAddress': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27980479-cfa3188c-6387-11e7-8191-93fc4184ba5c.jpg',
@@ -251,6 +252,19 @@ module.exports = class bter extends Exchange {
     async cancelOrder (id, symbol = undefined, params = {}) {
         await this.loadMarkets ();
         return await this.privatePostCancelOrder ({ 'orderNumber': id });
+    }
+
+    async fetchDepositAddress (currency, params = {}) {
+        let response = await this.privatePostDepositAddress (this.extend ({
+            'currency': currency,
+        }, params));
+        return {
+            'info': response,
+            'id': undefined,
+            'address': response['addr'],
+            'status': response['result'],
+            'currency': currency,
+        };
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {

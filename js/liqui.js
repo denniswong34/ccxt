@@ -21,6 +21,7 @@ module.exports = class liqui extends Exchange {
                 'fetchTickers': true,
                 'fetchMyTrades': true,
                 'withdraw': true,
+                'fetchDepositAddress': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27982022-75aea828-63a0-11e7-9511-ca584a8edd74.jpg',
@@ -565,6 +566,20 @@ module.exports = class liqui extends Exchange {
         if ('return' in response)
             trades = response['return'];
         return this.parseTrades (trades, market, since, limit);
+    }
+
+    async fetchDepositAddress (code, params = {}) {
+        let coin = this.currency (code);
+        let response = await this.privatePostCoinDepositAddress (this.extend ({
+            'coin': coin['id']
+        }, params));
+        return {
+            'info': response,
+            'currency': coin,
+            'address': response.return.address,
+            'status': 'ok',
+        };
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
