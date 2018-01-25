@@ -28,6 +28,7 @@ module.exports = class kucoin extends Exchange {
                 'fetchMyTrades': false,
                 'fetchCurrencies': true,
                 'withdraw': true,
+                'fetchDepositAddress': true,
             },
             'timeframes': {
                 '1m': 1,
@@ -535,6 +536,20 @@ module.exports = class kucoin extends Exchange {
         };
         let response = await this.publicGetOpenChartHistory (this.extend (request, params));
         return this.parseTradingViewOHLCVs (response, market, timeframe, since, limit);
+    }
+
+    async fetchDepositAddress (currency, params = {}) {
+        let currency = this.currency (code);
+        let response = await this.privateGetAccountCoinWalletAddress (this.extend ({
+            'coin': currency['id']
+        }, params));
+        return {
+            'info': response,
+            'currency': currency,
+            'address': response.data.address,
+            'status': 'ok',
+        };
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
     async withdraw (code, amount, address, tag = undefined, params = {}) {
