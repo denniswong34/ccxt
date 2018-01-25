@@ -539,13 +539,13 @@ module.exports = class kucoin extends Exchange {
     }
 
     async fetchDepositAddress (code, params = {}) {
-        let currency = this.currency (code);
+        let coin = this.currency (code);
         let response = await this.privateGetAccountCoinWalletAddress (this.extend ({
-            'coin': currency['id']
+            'coin': coin['id']
         }, params));
         return {
             'info': response,
-            'currency': currency,
+            'currency': coin,
             'address': response.data.address,
             'status': 'ok',
         };
