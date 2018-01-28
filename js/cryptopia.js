@@ -71,6 +71,12 @@ module.exports = class cryptopia extends Exchange {
                     ],
                 },
             },
+            'fees': {
+                'trading': {
+                    'maker': 0.0020,
+                    'taker': 0.0020,
+                },
+            }
         });
     }
 
