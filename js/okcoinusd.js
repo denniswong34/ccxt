@@ -23,7 +23,7 @@ module.exports = class okcoinusd extends Exchange {
                 'fetchOpenOrders': true,
                 'fetchClosedOrders': true,
                 'withdraw': true,
-                'futureMarkets': false,
+                'futures': false,
             },
             'extension': '.do', // appended to endpoint URL
             'timeframes': {
@@ -129,8 +129,9 @@ module.exports = class okcoinusd extends Exchange {
                 },
             },
             'exceptions': {
-                '1009': OrderNotFound,
-                '1013': InvalidOrder, // no order type
+                '1009': OrderNotFound, // for spot markets
+                '20015': OrderNotFound, // for future markets
+                '1013': InvalidOrder, // no contract type (PR-1101)
                 '1027': InvalidOrder, // createLimitBuyOrder(symbol, 0, 0): Incorrect parameter may exceeded limits
                 '1002': InsufficientFunds, // The transaction amount exceed the balance
                 '10000': ExchangeError, // createLimitBuyOrder(symbol, undefined, undefined)
@@ -188,7 +189,7 @@ module.exports = class okcoinusd extends Exchange {
                 },
             });
             result.push (market);
-            if ((this.has['futureMarkets']) && (market['quote'] === 'USDT')) {
+            if ((this.has['futures']) && (market['quote'] === 'USDT')) {
                 result.push (this.extend (market, {
                     'quote': 'USD',
                     'symbol': market['base'] + '/USD',

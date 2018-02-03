@@ -3,12 +3,11 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { ExchangeNotAvailable, ExchangeError, InsufficientFunds, OrderNotFound, OrderNotCached, InvalidOrder } = require ('./base/errors');
+const { ExchangeNotAvailable, ExchangeError, InsufficientFunds, OrderNotFound, OrderNotCached, InvalidOrder, CancelPending } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
 module.exports = class poloniex extends Exchange {
-
     describe () {
         return this.deepExtend (super.describe (), {
             'id': 'poloniex',
@@ -18,7 +17,8 @@ module.exports = class poloniex extends Exchange {
             'has': {
                 'createDepositAddress': true,
                 'fetchDepositAddress': true,
-                'CORS': true,
+                'CORS': false,
+                'createMarketOrder': false,
                 'fetchOHLCV': true,
                 'fetchMyTrades': true,
                 'fetchOrder': 'emulated',
@@ -100,7 +100,7 @@ module.exports = class poloniex extends Exchange {
                     'maker': 0.0015,
                     'taker': 0.0025,
                 },
-                'funding': 0.0,
+                'funding': {},
             },
             'limits': {
                 'amount': {
@@ -237,7 +237,8 @@ module.exports = class poloniex extends Exchange {
             'info': fees,
             'maker': parseFloat (fees['makerFee']),
             'taker': parseFloat (fees['takerFee']),
-            'withdraw': 0.0,
+            'withdraw': {},
+            'deposit': {},
         };
     }
 
@@ -773,18 +774,20 @@ module.exports = class poloniex extends Exchange {
     }
 
     handleErrors (code, reason, url, method, headers, body) {
-        if (code >= 400) {
-            if (body[0] === '{') {
-                let response = JSON.parse (body);
-                if ('error' in response) {
-                    let error = this.id + ' ' + body;
-                    if (response['error'].indexOf ('Total must be at least') >= 0) {
-                        throw new InvalidOrder (error);
-                    } else if (response['error'].indexOf ('Not enough') >= 0) {
-                        throw new InsufficientFunds (error);
-                    } else if (response['error'].indexOf ('Nonce must be greater') >= 0) {
-                        throw new ExchangeNotAvailable (error);
-                    }
+        if (body[0] === '{') {
+            let response = JSON.parse (body);
+            if ('error' in response) {
+                let error = this.id + ' ' + body;
+                if (response['error'] === 'Invalid order number, or you are not the person who placed the order.') {
+                    throw new OrderNotFound (error);
+                } else if (response['error'].indexOf ('Total must be at least') >= 0) {
+                    throw new InvalidOrder (error);
+                } else if (response['error'].indexOf ('Not enough') >= 0) {
+                    throw new InsufficientFunds (error);
+                } else if (response['error'].indexOf ('Nonce must be greater') >= 0) {
+                    throw new ExchangeNotAvailable (error);
+                } else if (response['error'].indexOf ('You have already called cancelOrder or moveOrder on this order.') >= 0) {
+                    throw new CancelPending (error);
                 }
             }
         }
@@ -801,4 +804,4 @@ module.exports = class poloniex extends Exchange {
         }
         return response;
     }
-}
+};
