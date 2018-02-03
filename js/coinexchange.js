@@ -20,6 +20,8 @@ module.exports = class coinexchange extends Exchange {
                 'fetchTrades': false,
                 'fetchCurrencies': true,
                 'fetchTickers': true,
+                'fetchBalance': false,
+
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/34842303-29c99fca-f71c-11e7-83c1-09d900cb2334.jpg',
