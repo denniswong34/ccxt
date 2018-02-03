@@ -233,6 +233,16 @@ module.exports = class huobipro extends Exchange {
         };
     }
 
+    async fetchTickers (symbols = undefined, params = {}) {
+       //await this.loadMarkets ();
+        let markets = await this.fetchMarkets();
+        let allRequests = [];
+        for(let market in markets) {
+            allRequests.push(this.fetchTicker(market.symbol, params));
+        }
+        return Promise.all(allRequests);
+    }
+
     parseTradesData (data, market, since = undefined, limit = undefined) {
         let result = [];
         for (let i = 0; i < data.length; i++) {
