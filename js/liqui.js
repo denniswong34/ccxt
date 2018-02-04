@@ -243,14 +243,40 @@ module.exports = class liqui extends Exchange {
         };
     }
 
+    /**
+     * Returns an array with arrays of the given size.
+     *
+     * @param myArray {Array} array to split
+     * @param chunk_size {Integer} Size of every group
+     */
+    function chunkArray(myArray, chunk_size){
+        var index = 0;
+        var arrayLength = myArray.length;
+        var tempArray = [];
+
+        for (index = 0; index < arrayLength; index += chunk_size) {
+            myChunk = myArray.slice(index, index+chunk_size);
+            // Do something if you want with the group
+            tempArray.push(myChunk);
+        }
+
+        return tempArray;
+    }
+
     async fetchTickers (symbols = undefined, params = {}) {
         await this.loadMarkets ();
         let ids = undefined;
+        let tickers = undefined;
+        let isSizeTooLarge = false;
         if (!symbols) {
-            // let numIds = this.ids.length;
-            // if (numIds > 256)
-            //     throw new ExchangeError (this.id + ' fetchTickers() requires symbols argument');
-            ids = this.ids.join ('-');
+            let numIds = this.ids.length;
+             if (numIds > 200) {
+                 ids = chunkArray(this.ids, 200);
+                 isSizeTooLarge = true;
+             } else {
+                 ids = this.ids.join ('-');
+             }
+
             if (ids.length > 2083) {
                 let numIds = this.ids.length;
                 throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
@@ -259,9 +285,20 @@ module.exports = class liqui extends Exchange {
             ids = this.marketIds (symbols);
             ids = ids.join ('-');
         }
-        let tickers = await this.publicGetTickerPair (this.extend ({
-            'pair': ids,
-        }, params));
+        let tickers = [];
+        if(isSizeTooLarge) {
+            for(let id in ids) {
+                id = id.join('-');
+                tickers = tickers.concat(await this.publicGetTickerPair (this.extend ({
+                    'pair': ids,
+                }, params)));
+            }
+        } else {
+            tickers = await this.publicGetTickerPair (this.extend ({
+                'pair': ids,
+            }, params));
+        }
+
         let result = {};
         let keys = Object.keys (tickers);
         for (let k = 0; k < keys.length; k++) {
