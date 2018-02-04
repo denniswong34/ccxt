@@ -286,7 +286,9 @@ module.exports = class liqui extends Exchange {
         }
         let tickers = [];
         if(isSizeTooLarge) {
+            console.log("ids=" + ids);
             for(let id in ids) {
+                console.log("id=" + id);
                 id = id.join('-');
                 tickers = tickers.concat(await this.publicGetTickerPair (this.extend ({
                     'pair': ids,
