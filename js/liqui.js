@@ -255,7 +255,7 @@ module.exports = class liqui extends Exchange {
         var tempArray = [];
 
         for (index = 0; index < arrayLength; index += chunk_size) {
-            myChunk = myArray.slice(index, index+chunk_size);
+            let myChunk = myArray.slice(index, index+chunk_size);
             // Do something if you want with the group
             tempArray.push(myChunk);
         }
@@ -266,12 +266,11 @@ module.exports = class liqui extends Exchange {
     async fetchTickers (symbols = undefined, params = {}) {
         await this.loadMarkets ();
         let ids = undefined;
-        let tickers = undefined;
         let isSizeTooLarge = false;
         if (!symbols) {
             let numIds = this.ids.length;
              if (numIds > 200) {
-                 ids = chunkArray(this.ids, 200);
+                 ids = this.chunkArray(this.ids, 200);
                  isSizeTooLarge = true;
              } else {
                  ids = this.ids.join ('-');
