@@ -249,7 +249,7 @@ module.exports = class liqui extends Exchange {
      * @param myArray {Array} array to split
      * @param chunk_size {Integer} Size of every group
      */
-    function chunkArray(myArray, chunk_size){
+    chunkArray(myArray, chunk_size){
         var index = 0;
         var arrayLength = myArray.length;
         var tempArray = [];
