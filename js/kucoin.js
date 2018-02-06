@@ -229,7 +229,7 @@ module.exports = class kucoin extends Exchange {
                 'name': currency['name'],
                 'active': active,
                 'status': 'ok',
-                'fee': currency['withdrawFeeRate'], // todo: redesign
+                'fee': currency['withdrawMinFee'], // todo: redesign
                 'precision': precision,
                 'limits': {
                     'amount': {
@@ -280,7 +280,7 @@ module.exports = class kucoin extends Exchange {
         return this.parseBalance (result);
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let market = this.market (symbol);
         let response = await this.publicGetOpenOrders (this.extend ({
@@ -298,11 +298,11 @@ module.exports = class kucoin extends Exchange {
             symbol = order['coinType'] + '/' + order['coinTypePair'];
         }
         let timestamp = this.safeValue (order, 'createdAt');
-        let price = this.safeValue (order, 'price');
+        let price = this.safeFloat (order, 'price');
         if (typeof price === 'undefined')
-            price = this.safeValue (order, 'dealPrice');
+            price = this.safeFloat (order, 'dealPrice');
         if (typeof price === 'undefined')
-            price = this.safeValue (order, 'dealPriceAverage');
+            price = this.safeFloat (order, 'dealPriceAverage');
         let remaining = this.safeFloat (order, 'pendingAmount');
         let status = this.safeValue (order, 'status');
         let filled = this.safeFloat (order, 'dealAmount');
@@ -313,12 +313,15 @@ module.exports = class kucoin extends Exchange {
                 else
                     status = 'closed';
         }
-        if (typeof status !== 'undefined') {
-            if (status === 'closed')
-                filled = this.safeFloat (order, 'amount');
+        if (typeof filled === 'undefined') {
+            if (typeof status !== 'undefined')
+                if (status === 'closed')
+                    filled = this.safeFloat (order, 'amount');
         }
         let amount = this.safeFloat (order, 'amount');
         let cost = this.safeFloat (order, 'dealValue');
+        if (typeof cost === 'undefined')
+            cost = this.safeFloat (order, 'dealValueTotal');
         if (typeof filled !== 'undefined') {
             if (typeof price !== 'undefined') {
                 if (typeof cost === 'undefined')
@@ -337,7 +340,7 @@ module.exports = class kucoin extends Exchange {
         let fee = undefined;
         if ('feeTotal' in order) {
             fee = {
-                'cost': this.safeValue (order, 'feeTotal'),
+                'cost': this.safeFloat (order, 'feeTotal'),
                 'rate': undefined,
                 'currency': undefined,
             };

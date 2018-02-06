@@ -199,13 +199,15 @@ module.exports = class liqui extends Exchange {
         return this.parseBalance (result);
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let market = this.market (symbol);
-        let response = await this.publicGetDepthPair (this.extend ({
+        let request = {
             'pair': market['id'],
-            // 'limit': 150, // default = 150, max = 2000
-        }, params));
+        };
+        if (typeof limit !== 'undefined')
+            request['limit'] = limit; // default = 150, max = 2000
+        let response = await this.publicGetDepthPair (this.extend (request, params));
         let market_id_in_reponse = (market['id'] in response);
         if (!market_id_in_reponse)
             throw new ExchangeError (this.id + ' ' + market['symbol'] + ' order book is empty or not available');
@@ -724,6 +726,8 @@ module.exports = class liqui extends Exchange {
                     } else if (message === 'api key dont have trade permission') {
                         throw new AuthenticationError (feedback);
                     } else if (message.indexOf ('invalid parameter') >= 0) { // errorCode 0, returned on buy(symbol, 0, 0)
+                        throw new InvalidOrder (feedback);
+                    } else if (message === 'invalid order') {
                         throw new InvalidOrder (feedback);
                     } else if (message === 'Requests too often') {
                         throw new DDoSProtection (feedback);

@@ -203,13 +203,15 @@ module.exports = class okcoinusd extends Exchange {
         return result;
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let market = this.market (symbol);
         let method = 'publicGet';
         let request = {
             'symbol': market['id'],
         };
+        if (typeof limit !== 'undefined')
+            request['size'] = limit;
         if (market['future']) {
             method += 'Future';
             request['contract_type'] = 'this_week'; // next_week, quarter

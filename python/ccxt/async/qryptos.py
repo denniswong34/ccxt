@@ -141,7 +141,7 @@ class qryptos (Exchange):
             result[currency] = account
         return self.parse_balance(result)
 
-    async def fetch_order_book(self, symbol, params={}):
+    async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
         orderbook = await self.publicGetProductsIdPriceLevels(self.extend({
             'id': self.market_id(symbol),
@@ -354,7 +354,7 @@ class qryptos (Exchange):
     def handle_errors(self, code, reason, url, method, headers, body, response=None):
         if code >= 200 and code <= 299:
             return
-        messages = self.exceptions.messages
+        messages = self.exceptions['messages']
         if code == 401:
             # expected non-json response
             if body in messages:

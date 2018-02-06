@@ -221,7 +221,7 @@ class bittrex (Exchange):
             result[currency] = account
         return self.parse_balance(result)
 
-    def fetch_order_book(self, symbol, params={}):
+    def fetch_order_book(self, symbol, limit=None, params={}):
         self.load_markets()
         response = self.publicGetOrderbook(self.extend({
             'market': self.market_id(symbol),
@@ -651,6 +651,8 @@ class bittrex (Exchange):
             if response['message'] == 'APISIGN_NOT_PROVIDED':
                 raise AuthenticationError(self.id + ' ' + self.json(response))
             if response['message'] == 'INVALID_SIGNATURE':
+                raise AuthenticationError(self.id + ' ' + self.json(response))
+            if response['message'] == 'INVALID_PERMISSION':
                 raise AuthenticationError(self.id + ' ' + self.json(response))
             if response['message'] == 'INSUFFICIENT_FUNDS':
                 raise InsufficientFunds(self.id + ' ' + self.json(response))

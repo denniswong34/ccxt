@@ -83,6 +83,7 @@ module.exports = class cryptopia extends Exchange {
     commonCurrencyCode (currency) {
         const currencies = {
             'ACC': 'AdCoin',
+            'BAT': 'BatCoin',
             'CC': 'CCX',
             'CMT': 'Comet',
             'FCN': 'Facilecoin',
@@ -100,6 +101,7 @@ module.exports = class cryptopia extends Exchange {
     currencyId (currency) {
         const currencies = {
             'AdCoin': 'ACC',
+            'BatCoin': 'BAT',
             'CCX': 'CC',
             'Comet': 'CMT',
             'Cubits': 'QBT',
@@ -165,7 +167,7 @@ module.exports = class cryptopia extends Exchange {
         return result;
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let response = await this.publicGetGetMarketOrdersId (this.extend ({
             'id': this.marketId (symbol),

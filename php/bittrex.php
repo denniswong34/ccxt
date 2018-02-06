@@ -211,7 +211,7 @@ class bittrex extends Exchange {
         return $this->parse_balance($result);
     }
 
-    public function fetch_order_book ($symbol, $params = array ()) {
+    public function fetch_order_book ($symbol, $limit = null, $params = array ()) {
         $this->load_markets();
         $response = $this->publicGetOrderbook (array_merge (array (
             'market' => $this->market_id($symbol),
@@ -686,6 +686,8 @@ class bittrex extends Exchange {
             if ($response['message'] === 'APISIGN_NOT_PROVIDED')
                 throw new AuthenticationError ($this->id . ' ' . $this->json ($response));
             if ($response['message'] === 'INVALID_SIGNATURE')
+                throw new AuthenticationError ($this->id . ' ' . $this->json ($response));
+            if ($response['message'] === 'INVALID_PERMISSION')
                 throw new AuthenticationError ($this->id . ' ' . $this->json ($response));
             if ($response['message'] === 'INSUFFICIENT_FUNDS')
                 throw new InsufficientFunds ($this->id . ' ' . $this->json ($response));

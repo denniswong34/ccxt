@@ -83,6 +83,7 @@ class cryptopia (Exchange):
     def common_currency_code(self, currency):
         currencies = {
             'ACC': 'AdCoin',
+            'BAT': 'BatCoin',
             'CC': 'CCX',
             'CMT': 'Comet',
             'FCN': 'Facilecoin',
@@ -99,6 +100,7 @@ class cryptopia (Exchange):
     def currency_id(self, currency):
         currencies = {
             'AdCoin': 'ACC',
+            'BatCoin': 'BAT',
             'CCX': 'CC',
             'Comet': 'CMT',
             'Cubits': 'QBT',
@@ -161,7 +163,7 @@ class cryptopia (Exchange):
             })
         return result
 
-    async def fetch_order_book(self, symbol, params={}):
+    async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
         response = await self.publicGetGetMarketOrdersId(self.extend({
             'id': self.market_id(symbol),

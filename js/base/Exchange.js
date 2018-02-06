@@ -157,7 +157,6 @@ module.exports = class Exchange {
 
         this.iso8601          = timestamp => new Date (timestamp).toISOString ()
         this.parse8601        = x => Date.parse (((x.indexOf ('+') >= 0) || (x.slice (-1) === 'Z')) ? x : (x + 'Z'))
-        this.milliseconds     = now
         this.microseconds     = () => now () * 1000 // TODO: utilize performance.now for that purpose
         this.seconds          = () => Math.floor (now () / 1000)
 
@@ -231,6 +230,10 @@ module.exports = class Exchange {
 
     nonce () {
         return this.seconds ()
+    }
+    
+    milliseconds () {
+        return now ()
     }
 
     encodeURIComponent (...args) {
@@ -365,7 +368,7 @@ module.exports = class Exchange {
         return this.fetch2 (path, type, method, params, headers, body)
     }
 
-    parseJson (responseBody, url, method = 'GET') {
+    parseJson (response, responseBody, url, method) {
         try {
 
             return (responseBody.length > 0) ? JSON.parse (responseBody) : {} // empty object for empty body
@@ -373,7 +376,12 @@ module.exports = class Exchange {
         } catch (e) {
 
             if (this.verbose)
-                console.log ('parseJson:\n', this.id, method, url, 'error', e, "response body:\n'" + responseBody + "'\n")
+                console.log ('parseJson:\n', this.id, method, url, response.status, 'error', e, "response body:\n'" + responseBody + "'\n")
+
+            let title = undefined
+            let match = responseBody.match (/<title>([^<]+)/i)
+            if (match)
+                title = match[1].trim ();
 
             let maintenance = responseBody.match (/offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing/i)
             let ddosProtection = responseBody.match (/cloudflare|incapsula|overload/i)
@@ -386,7 +394,7 @@ module.exports = class Exchange {
                     details = 'offline, on maintenance or unreachable from this location at the moment'
                 if (ddosProtection)
                     error = DDoSProtection
-                throw new error ([ this.id, method, url, details ].join (' '))
+                throw new error ([ this.id, method, url, response.status, title, details ].join (' '))
             }
 
             throw e
@@ -397,7 +405,8 @@ module.exports = class Exchange {
         // override me
     }
 
-    defaultErrorHandler (code, reason, url, method, responseBody) {
+    defaultErrorHandler (response, responseBody, url, method) {
+        const { status: code, statusText: reason } = response
         if ((code >= 200) && (code <= 299))
             return
         let error = undefined
@@ -439,7 +448,7 @@ module.exports = class Exchange {
         return response.text ().then (responseBody => {
 
             let jsonRequired = this.parseJsonResponse && !this.skipJsonOnStatusCodes.includes (response.status)
-            let json = jsonRequired ? this.parseJson (responseBody, url, method) : undefined
+            let json = jsonRequired ? this.parseJson (response, responseBody, url, method) : undefined
 
             if (this.verbose)
                 console.log ("handleRestResponse:\n", this.id, method, url, response.status, response.statusText, "\nResponse:\n", requestHeaders, "\n", responseBody, "\n")
@@ -449,7 +458,7 @@ module.exports = class Exchange {
 
             const args = [ response.status, response.statusText, url, method, requestHeaders, responseBody, json ]
             this.handleErrors (...args)
-            this.defaultErrorHandler (response.status, response.statusText, url, method, responseBody)
+            this.defaultErrorHandler (response, responseBody, url, method)
 
             return jsonRequired ? json : responseBody
         })
@@ -637,8 +646,8 @@ module.exports = class Exchange {
         return Object.values (bidasks || []).map (bidask => this.parseBidAsk (bidask, priceKey, amountKey))
     }
 
-    async fetchL2OrderBook (symbol, params = {}) {
-        let orderbook = await this.fetchOrderBook (symbol, params)
+    async fetchL2OrderBook (symbol, limit = undefined, params = {}) {
+        let orderbook = await this.fetchOrderBook (symbol, limit, params)
         return extend (orderbook, {
             'bids': sortBy (aggregate (orderbook.bids), 0, true),
             'asks': sortBy (aggregate (orderbook.asks), 0),

@@ -139,7 +139,7 @@ module.exports = class qryptos extends Exchange {
         return this.parseBalance (result);
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let orderbook = await this.publicGetProductsIdPriceLevels (this.extend ({
             'id': this.marketId (symbol),
@@ -378,7 +378,7 @@ module.exports = class qryptos extends Exchange {
     handleErrors (code, reason, url, method, headers, body, response = undefined) {
         if (code >= 200 && code <= 299)
             return;
-        const messages = this.exceptions.messages;
+        const messages = this.exceptions['messages'];
         if (code === 401) {
             // expected non-json response
             if (body in messages)

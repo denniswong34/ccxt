@@ -202,13 +202,15 @@ class okcoinusd extends Exchange {
         return $result;
     }
 
-    public function fetch_order_book ($symbol, $params = array ()) {
+    public function fetch_order_book ($symbol, $limit = null, $params = array ()) {
         $this->load_markets();
         $market = $this->market ($symbol);
         $method = 'publicGet';
         $request = array (
             'symbol' => $market['id'],
         );
+        if ($limit !== null)
+            $request['size'] = $limit;
         if ($market['future']) {
             $method .= 'Future';
             $request['contract_type'] = 'this_week'; // next_week, quarter

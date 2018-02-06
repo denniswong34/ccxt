@@ -366,7 +366,7 @@ class bitfinex (Exchange):
                 result[uppercase] = account
         return self.parse_balance(result)
 
-    async def fetch_order_book(self, symbol, params={}):
+    async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
         orderbook = await self.publicGetBookSymbol(self.extend({
             'symbol': self.market_id(symbol),
@@ -722,10 +722,10 @@ class bitfinex (Exchange):
                     message = response['error']
                 else:
                     raise ExchangeError(feedback)  # malformed(to our knowledge) response
-                exact = self.exceptions.exact
+                exact = self.exceptions['exact']
                 if message in exact:
                     raise exact[message](feedback)
-                broad = self.exceptions.broad
+                broad = self.exceptions['broad']
                 broadKey = self.find_broadly_matched_key(broad, message)
                 if broadKey is not None:
                     raise broad[broadKey](feedback)

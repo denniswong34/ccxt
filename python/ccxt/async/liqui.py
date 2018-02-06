@@ -207,13 +207,15 @@ class liqui (Exchange):
             result[uppercase] = account
         return self.parse_balance(result)
 
-    async def fetch_order_book(self, symbol, params={}):
+    async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
         market = self.market(symbol)
-        response = await self.publicGetDepthPair(self.extend({
+        request = {
             'pair': market['id'],
-            # 'limit': 150,  # default = 150, max = 2000
-        }, params))
+        }
+        if limit is not None:
+            request['limit'] = limit  # default = 150, max = 2000
+        response = await self.publicGetDepthPair(self.extend(request, params))
         market_id_in_reponse = (market['id'] in list(response.keys()))
         if not market_id_in_reponse:
             raise ExchangeError(self.id + ' ' + market['symbol'] + ' order book is empty or not available')
@@ -637,6 +639,8 @@ class liqui (Exchange):
                     elif message == 'api key dont have trade permission':
                         raise AuthenticationError(feedback)
                     elif message.find('invalid parameter') >= 0:  # errorCode 0, returned on buy(symbol, 0, 0)
+                        raise InvalidOrder(feedback)
+                    elif message == 'invalid order':
                         raise InvalidOrder(feedback)
                     elif message == 'Requests too often':
                         raise DDoSProtection(feedback)

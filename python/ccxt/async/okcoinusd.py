@@ -206,13 +206,15 @@ class okcoinusd (Exchange):
                 }))
         return result
 
-    async def fetch_order_book(self, symbol, params={}):
+    async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
         market = self.market(symbol)
         method = 'publicGet'
         request = {
             'symbol': market['id'],
         }
+        if limit is not None:
+            request['size'] = limit
         if market['future']:
             method += 'Future'
             request['contract_type'] = 'this_week'  # next_week, quarter

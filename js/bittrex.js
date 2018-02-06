@@ -212,7 +212,7 @@ module.exports = class bittrex extends Exchange {
         return this.parseBalance (result);
     }
 
-    async fetchOrderBook (symbol, params = {}) {
+    async fetchOrderBook (symbol, limit = undefined, params = {}) {
         await this.loadMarkets ();
         let response = await this.publicGetOrderbook (this.extend ({
             'market': this.marketId (symbol),
@@ -687,6 +687,8 @@ module.exports = class bittrex extends Exchange {
             if (response['message'] === 'APISIGN_NOT_PROVIDED')
                 throw new AuthenticationError (this.id + ' ' + this.json (response));
             if (response['message'] === 'INVALID_SIGNATURE')
+                throw new AuthenticationError (this.id + ' ' + this.json (response));
+            if (response['message'] === 'INVALID_PERMISSION')
                 throw new AuthenticationError (this.id + ' ' + this.json (response));
             if (response['message'] === 'INSUFFICIENT_FUNDS')
                 throw new InsufficientFunds (this.id + ' ' + this.json (response));
