@@ -235,7 +235,6 @@ module.exports = class huobipro extends Exchange {
     }
 
     async fetchTickers (symbols = undefined, params = {}) {
-       //await this.loadMarkets ();
         let currencys = await this.public_get_common_currencys();
         let markets = await this.fetchMarkets();
         let allRequests = [];
@@ -245,13 +244,10 @@ module.exports = class huobipro extends Exchange {
             if(currencys.data.includes(market.base.toLowerCase())) {
             	do {
             		try{
-            			//console.log("count=" + count);
             			allRequests.push(await this.fetchTicker(market.symbol, params));
-                		count++;
                 	} catch (e) {
                 		error = true;
                 		sleep(11000);
-                		//console.log("Retrying.........");
                 		error = false;
                 	}
             	} while(error);
