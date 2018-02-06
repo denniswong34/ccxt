@@ -239,7 +239,7 @@ module.exports = class huobipro extends Exchange {
         let currencys = await this.public_get_common_currencys();
         let markets = await this.fetchMarkets();
         let allRequests = [];
-        for(let market in markets) {
+        for(let market of markets) {
             if(currencys.data.includes(market.base.toLowerCase()))
                 allRequests.push(this.fetchTicker(market.symbol, params));
         }
