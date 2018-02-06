@@ -4,10 +4,11 @@
 
 const Exchange = require ('./base/Exchange');
 const { ExchangeError } = require ('./base/errors');
-
+const sleep = require('system-sleep');
 //  ---------------------------------------------------------------------------
 
 module.exports = class huobipro extends Exchange {
+
     describe () {
         return this.deepExtend (super.describe (), {
             'id': 'huobipro',
@@ -192,7 +193,7 @@ module.exports = class huobipro extends Exchange {
         };
     }
 
-    async fetchOrderBook (symbol, limit = undefined, params = {}) {
+    async fetchOrderBook (symbol, params = {}) {
         await this.loadMarkets ();
         let market = this.market (symbol);
         let response = await this.marketGetDepth (this.extend ({
@@ -238,11 +239,25 @@ module.exports = class huobipro extends Exchange {
         let currencys = await this.public_get_common_currencys();
         let markets = await this.fetchMarkets();
         let allRequests = [];
+        let error = false;
+        let count = 0;
         for(let market of markets) {
-            if(currencys.data.includes(market.base.toLowerCase()))
-                allRequests.push(this.fetchTicker(market.symbol, params));
+            if(currencys.data.includes(market.base.toLowerCase())) {
+            	do {
+            		try{
+            			//console.log("count=" + count);
+            			allRequests.push(await this.fetchTicker(market.symbol, params));
+                		count++;
+                	} catch (e) {
+                		error = true;
+                		sleep(11000);
+                		//console.log("Retrying.........");
+                		error = false;
+                	}
+            	} while(error);
+            }
         }
-        return Promise.all(allRequests);
+        return allRequests;
     }
 
     parseTradesData (data, market, since = undefined, limit = undefined) {
@@ -364,7 +379,7 @@ module.exports = class huobipro extends Exchange {
 
     async fetchOpenOrders (symbol = undefined, since = undefined, limit = undefined, params = {}) {
         let open = 0; // 0 for unfilled orders, 1 for filled orders
-        return await this.fetchOrders (symbol, undefined, undefined, this.extend ({
+        return this.fetchOrders (symbol, undefined, undefined, this.extend ({
             'status': open,
         }, params));
     }
@@ -522,4 +537,4 @@ module.exports = class huobipro extends Exchange {
                 throw new ExchangeError (this.id + ' ' + this.json (response));
         return response;
     }
-};
+}
