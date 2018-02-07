@@ -262,7 +262,6 @@ module.exports = class huobipro extends Exchange {
         let response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
             'currency': currency.toLowerCase(),
         }, params));
-        console.log(response);
         if ('status' in response) {
             if (response['status'] == "ok") {
                 let address = this.safeString (response.data, 'address');
