@@ -22,6 +22,7 @@ module.exports = class zb extends Exchange {
                 'fetchTickers': true,
                 'fetchOrder': true,
                 'withdraw': true,
+                'fetchDepositAddress': true,
             },
             'timeframes': {
                 '1m': '1min',
@@ -59,21 +60,23 @@ module.exports = class zb extends Exchange {
                     ],
                 },
                 'private': {
+                	'get': [
+                	    'getUserAddress',
+                	],
                     'post': [
+						'getOrder',
+						'getOrders',
+						'getOrdersNew',
+						'getOrdersIgnoreTradeType',
+						'getUnfinishedOrdersIgnoreTradeType',
+						'getAccountInfo',
+						'getChargeRecord',
+						'getCnyWithdrawRecord',
+						'getCnyChargeRecord',
+						'getWithdrawRecord',
+						'getWithdrawAddress',
                         'order',
                         'cancelOrder',
-                        'getOrder',
-                        'getOrders',
-                        'getOrdersNew',
-                        'getOrdersIgnoreTradeType',
-                        'getUnfinishedOrdersIgnoreTradeType',
-                        'getAccountInfo',
-                        'getUserAddress',
-                        'getWithdrawAddress',
-                        'getWithdrawRecord',
-                        'getChargeRecord',
-                        'getCnyWithdrawRecord',
-                        'getCnyChargeRecord',
                         'withdraw',
                     ],
                 },
@@ -262,6 +265,26 @@ module.exports = class zb extends Exchange {
         }
         return allRequests;
     }
+    
+    async fetchDepositAddress (currency, params = {}) {
+    	console.log("currency=" + currency.toLowerCase());
+    	let requestParams = "&currency=" + currency.toLowerCase();
+        let response = await this.privateGetGetUserAddress(this.extend ({"currency": currency.toLowerCase()}, params));
+        console.log(response);
+        if ('message' in response) {
+            if (response['message'].des == "success") {
+                let address = this.safeString (response.message.datas.key, 'address');
+                //let tag = this.safeString (response.data, 'addr-tag');
+                return {
+                    'currency': currency,
+                    'address': address,
+                    'status': 'ok',
+                    'info': response,
+                };
+            }
+        }
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
+    }
 
     async fetchOHLCV (symbol, timeframe = '1m', since = undefined, limit = undefined, params = {}) {
         await this.loadMarkets ();
@@ -348,11 +371,16 @@ module.exports = class zb extends Exchange {
         } else {
             this.checkRequiredCredentials ();
             let nonce = this.nonce ();
+            let extraParams = "";
+            if (Object.keys (params).length)
+            	extraParams += this.urlencode (params);
+            
             let auth = 'accesskey=' + this.apiKey;
-            auth += '&' + 'method=' + path;
+            auth += '&' + extraParams + '&' + 'method=' + path;
             let secret = this.hash (this.encode (this.secret), 'sha1');
             let signature = this.hmac (this.encode (auth), this.encode (secret), 'md5');
             let suffix = 'sign=' + signature + '&reqTime=' + nonce.toString ();
+            
             url += '/' + path + '?' + auth + '&' + suffix;
         }
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
