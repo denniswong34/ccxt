@@ -4,6 +4,7 @@
 
 const Exchange = require ('./base/Exchange');
 const { ExchangeError } = require ('./base/errors');
+const sleep = require('system-sleep');
 
 //  ---------------------------------------------------------------------------
 
@@ -18,7 +19,7 @@ module.exports = class zb extends Exchange {
             'has': {
                 'CORS': false,
                 'fetchOHLCV': true,
-                'fetchTickers': false,
+                'fetchTickers': true,
                 'fetchOrder': true,
                 'withdraw': true,
             },
@@ -241,6 +242,25 @@ module.exports = class zb extends Exchange {
             'quoteVolume': undefined,
             'info': ticker,
         };
+    }
+    
+    async fetchTickers (symbols = undefined, params = {}) {
+        let markets = await this.fetchMarkets();
+        let allRequests = [];
+        let error = false;
+        let count = 0;
+        for(let market of markets) {
+        	do {
+        		try{
+        			allRequests.push(await this.fetchTicker(market.symbol, params));
+            	} catch (e) {
+            		error = true;
+            		sleep(11000);
+            		error = false;
+            	}
+        	} while(error);
+        }
+        return allRequests;
     }
 
     async fetchOHLCV (symbol, timeframe = '1m', since = undefined, limit = undefined, params = {}) {
