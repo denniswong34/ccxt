@@ -15,6 +15,7 @@ module.exports = class liqui extends Exchange {
             'has': {
                 'CORS': false,
                 'createMarketOrder': false,
+                'fetchOrderBooks': true,
                 'fetchOrder': true,
                 'fetchOrders': 'emulated',
                 'fetchOpenOrders': true,
@@ -22,7 +23,7 @@ module.exports = class liqui extends Exchange {
                 'fetchTickers': true,
                 'fetchMyTrades': true,
                 'withdraw': true,
-                'fetchDepositAddress': false,
+                'fetchDepositAddress': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27982022-75aea828-63a0-11e7-9511-ca584a8edd74.jpg',
@@ -218,6 +219,37 @@ module.exports = class liqui extends Exchange {
         return result;
     }
 
+    async fetchOrderBooks (symbols = undefined, params = {}) {
+        await this.loadMarkets ();
+        let ids = undefined;
+        if (!symbols) {
+            ids = this.ids.join ('-');
+            // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
+            if (ids.length > 2048) {
+                let numIds = this.ids.length;
+                throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchOrderBooks');
+            }
+        } else {
+            ids = this.marketIds (symbols);
+            ids = ids.join ('-');
+        }
+        let response = await this.publicGetDepthPair (this.extend ({
+            'pair': ids,
+        }, params));
+        let result = {};
+        ids = Object.keys (response);
+        for (let i = 0; i < ids.length; i++) {
+            let id = ids[i];
+            let symbol = id;
+            if (id in this.marketsById) {
+                let market = this.marketsById[id];
+                symbol = market['symbol'];
+            }
+            result[symbol] = this.parseOrderBook (response[id]);
+        }
+        return result;
+    }
+
     parseTicker (ticker, market = undefined) {
         let timestamp = ticker['updated'] * 1000;
         let symbol = undefined;
@@ -278,7 +310,8 @@ module.exports = class liqui extends Exchange {
                  ids = this.ids.join ('-');
              }
 
-            if (ids.length > 2083) {
+            // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
+            if (ids.length > 2048) {
                 let numIds = this.ids.length;
                 throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
             }

@@ -33,7 +33,7 @@ class bitfinex (Exchange):
                 'deposit': True,
                 'fetchClosedOrders': True,
                 'fetchDepositAddress': True,
-                'fetchFundingFees': True,
+                'fetchFees': True,
                 'fetchMyTrades': True,
                 'fetchOHLCV': True,
                 'fetchOpenOrders': True,
@@ -263,8 +263,9 @@ class bitfinex (Exchange):
         }
         return currencies[currency] if (currency in list(currencies.keys())) else currency
 
-    async def fetch_funding_fees(self):
-        response = await self.privatePostAccountFees()
+    async def fetch_funding_fees(self, params={}):
+        await self.load_markets()
+        response = await self.privatePostAccountFees(params)
         fees = response['withdraw']
         withdraw = {}
         ids = list(fees.keys())
@@ -281,8 +282,9 @@ class bitfinex (Exchange):
             'deposit': withdraw,  # only for deposits of less than $1000
         }
 
-    async def fetch_trading_fees(self):
-        response = await self.privatePostSummary()
+    async def fetch_trading_fees(self, params={}):
+        await self.load_markets()
+        response = await self.privatePostSummary(params)
         return {
             'info': response,
             'maker': self.safe_float(response, 'maker_fee'),

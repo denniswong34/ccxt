@@ -21,7 +21,7 @@ class bitfinex extends Exchange {
                 'deposit' => true,
                 'fetchClosedOrders' => true,
                 'fetchDepositAddress' => true,
-                'fetchFundingFees' => true,
+                'fetchFees' => true,
                 'fetchMyTrades' => true,
                 'fetchOHLCV' => true,
                 'fetchOpenOrders' => true,
@@ -253,8 +253,9 @@ class bitfinex extends Exchange {
         return (is_array ($currencies) && array_key_exists ($currency, $currencies)) ? $currencies[$currency] : $currency;
     }
 
-    public function fetch_funding_fees () {
-        $response = $this->privatePostAccountFees ();
+    public function fetch_funding_fees ($params = array ()) {
+        $this->load_markets();
+        $response = $this->privatePostAccountFees ($params);
         $fees = $response['withdraw'];
         $withdraw = array ();
         $ids = is_array ($fees) ? array_keys ($fees) : array ();
@@ -274,8 +275,9 @@ class bitfinex extends Exchange {
         );
     }
 
-    public function fetch_trading_fees () {
-        $response = $this->privatePostSummary ();
+    public function fetch_trading_fees ($params = array ()) {
+        $this->load_markets();
+        $response = $this->privatePostSummary ($params);
         return array (
             'info' => $response,
             'maker' => $this->safe_float($response, 'maker_fee'),
@@ -288,15 +290,15 @@ class bitfinex extends Exchange {
         // // setting $fees on the exchange instance isn't portable, unfortunately...
         // // this should probably go into the base class as well
         // $funding = $this->fees['funding'];
-        // $fees = $this->fetch_funding_fees ();
+        // $fees = $this->fetch_funding_fees();
         // $funding = array_replace_recursive ($funding, $fees);
         // return $funding;
         throw new NotImplemented ($this->id . ' loadFees() not implemented yet');
     }
 
     public function fetch_fees () {
-        $fundingFees = $this->fetch_funding_fees ();
-        $tradingFees = $this->fetch_trading_fees ();
+        $fundingFees = $this->fetch_funding_fees();
+        $tradingFees = $this->fetch_trading_fees();
         return array_replace_recursive ($fundingFees, $tradingFees);
     }
 

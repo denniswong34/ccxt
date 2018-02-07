@@ -22,7 +22,7 @@ module.exports = class bitfinex extends Exchange {
                 'deposit': true,
                 'fetchClosedOrders': true,
                 'fetchDepositAddress': true,
-                'fetchFundingFees': true,
+                'fetchFees': true,
                 'fetchMyTrades': true,
                 'fetchOHLCV': true,
                 'fetchOpenOrders': true,
@@ -254,8 +254,9 @@ module.exports = class bitfinex extends Exchange {
         return (currency in currencies) ? currencies[currency] : currency;
     }
 
-    async fetchFundingFees () {
-        const response = await this.privatePostAccountFees ();
+    async fetchFundingFees (params = {}) {
+        await this.loadMarkets ();
+        const response = await this.privatePostAccountFees (params);
         const fees = response['withdraw'];
         const withdraw = {};
         const ids = Object.keys (fees);
@@ -275,8 +276,9 @@ module.exports = class bitfinex extends Exchange {
         };
     }
 
-    async fetchTradingFees () {
-        let response = await this.privatePostSummary ();
+    async fetchTradingFees (params = {}) {
+        await this.loadMarkets ();
+        let response = await this.privatePostSummary (params);
         return {
             'info': response,
             'maker': this.safeFloat (response, 'maker_fee'),
@@ -295,7 +297,7 @@ module.exports = class bitfinex extends Exchange {
         throw new NotImplemented (this.id + ' loadFees() not implemented yet');
     }
 
-    async fetchFees () {
+    async fetchFees () {  // this can be removed since it is now dealt with in the base class
         let fundingFees = await this.fetchFundingFees ();
         let tradingFees = await this.fetchTradingFees ();
         return this.deepExtend (fundingFees, tradingFees);

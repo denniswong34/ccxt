@@ -55,7 +55,7 @@ Full public and private HTTP REST APIs for all exchanges are implemented. WebSoc
 Exchanges
 =========
 
-The ccxt library currently supports the following 98 cryptocurrency exchange markets and trading APIs:
+The ccxt library currently supports the following 99 cryptocurrency exchange markets and trading APIs:
 
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 |                        | id                   | name                                                           | ver   | doc                                                                                               | countries                                  |
@@ -101,6 +101,8 @@ The ccxt library currently supports the following 98 cryptocurrency exchange mar
 | |bitstamp1|            | bitstamp1            | `Bitstamp v1 <https://www.bitstamp.net>`__                     | 1     | `API <https://www.bitstamp.net/api>`__                                                            | UK                                         |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | |bittrex|              | bittrex              | `Bittrex <https://bittrex.com>`__                              | 1.1   | `API <https://bittrex.com/Home/Api>`__                                                            | US                                         |
++------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
+| |bitz|                 | bitz                 | `Bit-Z <https://www.bit-z.com/>`__                             | \*    | `API <https://www.bit-z.com/api.html>`__                                                          | Hong Kong                                  |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | |bl3p|                 | bl3p                 | `BL3P <https://bl3p.eu>`__                                     | 1     | `API <https://github.com/BitonicNL/bl3p-api/tree/master/docs>`__                                  | Netherlands, EU                            |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
@@ -539,7 +541,6 @@ Market Structure
             'amount': 8,      // integer
             'cost': 8,        // integer
         },
-        'lot': 0.00000001,    // order amount should be a multiple of lot
         'limits': {           // value limits when placing orders on this market
             'amount': {
                 'min': 0.01,  // order amount should be > min
@@ -560,8 +561,66 @@ Each market is an associative array (aka dictionary) with the following keys:
 -  ``active``. A boolean indicating whether or not trading this market is currently possible.
 -  ``info``. An associative array of non-common market properties, including fees, rates, limits and other general market information. The internal info array is different for each particular market, its contents depend on the exchange.
 -  ``precision``. The amounts of decimal digits accepted in order values by exchanges upon order placement for price, amount and cost.
--  ``lot``. The lot size is the smallest distinguishable step of amount increment accepted by the exchange when placing a new order. The order amount should be a multiple of lot size or, in other words, should be evenly divisible by the lot size.
 -  ``limits``. The minimums and maximums for prices, amounts (volumes) and costs (where cost = price \* amount).
+
+Precision And Limits
+~~~~~~~~~~~~~~~~~~~~
+
+**Do not confuse ``limits`` with ``precision``!** Precision has nothing to do with min limits. A precision of 8 digits does not necessarily mean a min limit of 0.0000001. The opposite is also true: a min limit of 0.0001 does not necessarily mean a precision of 4.
+
+Examples:
+
+1. ``(market['limits']['amount']['min'] == 0.05) && (market['precision']['amount'] == 4)``
+
+In the first example the **amount** of any order placed on the market **must satisfy both conditions**:
+
+-  The *amount value* should be >= 0.05:
+
+   .. code:: diff
+
+       + good: 0.05, 0.051, 0.0501, 0.0502, ..., 0.0599, 0.06, 0.0601, ...
+       - bad: 0.04, 0.049, 0.0499
+
+-  *Precision of the amount* should up to 4 decimal digits:
+
+   .. code:: diff
+
+       + good: 0.05, 0.051, 0.052, ..., 0.0531, ..., 0.06, ... 0.0719, ...
+       - bad: 0.05001, 0.05000, 0.06001
+
+2. ``(market['limits']['price']['min'] == 0.0019) && (market['precision']['price'] == 5)``
+
+In the second example the **price** of any order placed on the market **must satisfy both conditions**:
+
+-  The *price value* should be >= 0.019:
+
+   .. code:: diff
+
+       + good: 0.019, ... 0.0191, ... 0.01911, 0.01912, ...
+       - bad: 0.016, ..., 0.01699
+
+-  *Precision of price* should be 5 decimal digits or less:
+
+   .. code:: diff
+
+       + good: 0.02, 0.021, 0.0212, 0.02123, 0.02124, 0.02125, ...
+       - bad: 0.017000, 0.017001, ...
+
+3. ``(market['limits']['amount']['min'] == 50) && (market['precision']['amount'] == -1)``
+
+-  The *amount value* should be greater than 50:
+
+   .. code:: diff
+
+       + good: 50, 60, 70, 80, 90, 100, ... 2000, ...
+       - bad: 1, 2, 3, ..., 9
+
+-  A negative *amount precision* means that the amount should be an integer multiple of 10:
+
+   .. code:: diff
+
+       + good: 50, ..., 110, ... 1230, ..., 1000000, ..., 1234560, ...
+       - bad: 9.5, ... 10.1, ..., 11, ... 200.71, ...
 
 *The ``precision`` and ``limits`` params are currently under heavy development, some of these fields may be missing here and there until the unification process is complete. This does not influence most of the orders but can be significant in extreme cases of very large or very small orders. The ``active`` flag is not yet supported and/or implemented by all markets.*
 
@@ -2041,6 +2100,7 @@ Notes
 .. |bitstamp| image:: https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg
 .. |bitstamp1| image:: https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg
 .. |bittrex| image:: https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg
+.. |bitz| image:: https://user-images.githubusercontent.com/1294454/35862606-4f554f14-0b5d-11e8-957d-35058c504b6f.jpg
 .. |bl3p| image:: https://user-images.githubusercontent.com/1294454/28501752-60c21b82-6feb-11e7-818b-055ee6d0e754.jpg
 .. |bleutrade| image:: https://user-images.githubusercontent.com/1294454/30303000-b602dbe6-976d-11e7-956d-36c5049c01e7.jpg
 .. |braziliex| image:: https://user-images.githubusercontent.com/1294454/34703593-c4498674-f504-11e7-8d14-ff8e44fb78c1.jpg
