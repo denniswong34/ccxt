@@ -222,14 +222,6 @@ class bitfinex (Exchange):
                         'ZRX': 5.6442,
                         'TNB': 87.511,
                         'SNT': 32.736,
-                        'QSH': None,
-                        'TRX': None,
-                        'RCN': None,
-                        'RLC': None,
-                        'AID': None,
-                        'SNG': None,
-                        'REP': None,
-                        'ELF': None,
                     },
                 },
             },
@@ -604,15 +596,19 @@ class bitfinex (Exchange):
             'LTC': 'litecoin',
             'ETH': 'ethereum',
             'ETC': 'ethereumc',
-            'OMNI': 'mastercoin',  # left by previous author, now throws {"message":"Unknown method"}
+            'OMNI': 'mastercoin',
             'ZEC': 'zcash',
             'XMR': 'monero',
-            'USD': 'wire',  # left by previous author, now throws {"message":"Unknown method"}
+            'USD': 'wire',
             'DASH': 'dash',
             'XRP': 'ripple',
             'EOS': 'eos',
-            'BCH': 'bcash',
-            'USDT': 'tetheruso',
+            'BCH': 'bcash',  # undocumented
+            'USDT': 'tetheruso',  # undocumented
+            'NEO': 'neo',  # #1811
+            'AVT': 'aventus',  # #1811
+            'QTUM': 'qtum',  # #1811
+            'EDO': 'eidoo',  # #1811
         }
         if currency in names:
             return names[currency]
