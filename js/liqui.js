@@ -157,7 +157,7 @@ module.exports = class liqui extends Exchange {
             };
             let hidden = this.safeInteger (market, 'hidden');
             let active = (hidden === 0);
-            result.push (this.extend (this.fees['trading'], {
+            result.push ({
                 'id': id,
                 'symbol': symbol,
                 'base': base,
@@ -168,7 +168,7 @@ module.exports = class liqui extends Exchange {
                 'precision': precision,
                 'limits': limits,
                 'info': market,
-            }));
+            });
         }
         return result;
     }
@@ -277,39 +277,11 @@ module.exports = class liqui extends Exchange {
         };
     }
 
-    /**
-     * Returns an array with arrays of the given size.
-     *
-     * @param myArray {Array} array to split
-     * @param chunk_size {Integer} Size of every group
-     */
-    chunkArray(myArray, chunk_size){
-        var index = 0;
-        var arrayLength = myArray.length;
-        var tempArray = [];
-
-        for (index = 0; index < arrayLength; index += chunk_size) {
-            let myChunk = myArray.slice(index, index+chunk_size);
-            // Do something if you want with the group
-            tempArray.push(myChunk);
-        }
-
-        return tempArray;
-    }
-
     async fetchTickers (symbols = undefined, params = {}) {
         await this.loadMarkets ();
         let ids = undefined;
-        let isSizeTooLarge = false;
         if (!symbols) {
-            let numIds = this.ids.length;
-             if (numIds > 200) {
-                 ids = this.chunkArray(this.ids, 200);
-                 isSizeTooLarge = true;
-             } else {
-                 ids = this.ids.join ('-');
-             }
-
+            ids = this.ids.join ('-');
             // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
             if (ids.length > 2048) {
                 let numIds = this.ids.length;
@@ -319,22 +291,9 @@ module.exports = class liqui extends Exchange {
             ids = this.marketIds (symbols);
             ids = ids.join ('-');
         }
-        let tickers = [];
-        if(isSizeTooLarge) {
-            console.log("ids=" + ids);
-            for(let id in ids) {
-                console.log("id=" + id);
-                id = id.join('-');
-                tickers = tickers.concat(await this.publicGetTickerPair (this.extend ({
-                    'pair': ids,
-                }, params)));
-            }
-        } else {
-            tickers = await this.publicGetTickerPair (this.extend ({
-                'pair': ids,
-            }, params));
-        }
-
+        let tickers = await this.publicGetTickerPair (this.extend ({
+            'pair': ids,
+        }, params));
         let result = {};
         let keys = Object.keys (tickers);
         for (let k = 0; k < keys.length; k++) {
@@ -577,12 +536,17 @@ module.exports = class liqui extends Exchange {
             } else {
                 let order = this.orders[id];
                 if (order['status'] === 'open') {
-                    this.orders[id] = this.extend (order, {
+                    order = this.extend (order, {
                         'status': 'closed',
-                        'cost': order['amount'] * order['price'],
+                        'cost': undefined,
                         'filled': order['amount'],
                         'remaining': 0.0,
                     });
+                    if (typeof order['cost'] === 'undefined') {
+                        if (typeof order['filled'] !== 'undefined')
+                            order['cost'] = order['filled'] * order['price'];
+                    }
+                    this.orders[id] = order;
                 }
             }
             let order = this.orders[id];
@@ -644,6 +608,19 @@ module.exports = class liqui extends Exchange {
         return this.parseTrades (trades, market, since, limit);
     }
 
+    async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        await this.loadMarkets ();
+        let response = await this.privatePostWithdrawCoin (this.extend ({
+            'coinName': currency,
+            'amount': parseFloat (amount),
+            'address': address,
+        }, params));
+        return {
+            'info': response,
+            'id': response['return']['tId'],
+        };
+    }
+    
     async fetchDepositAddress (code, params = {}) {
         let coin = this.currency (code);
         let response = await this.privatePostCoinDepositAddress (this.extend ({
@@ -656,19 +633,6 @@ module.exports = class liqui extends Exchange {
             'status': 'ok',
         };
         throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
-    }
-
-    async withdraw (currency, amount, address, tag = undefined, params = {}) {
-        await this.loadMarkets ();
-        let response = await this.privatePostWithdrawCoin (this.extend ({
-            'coinName': currency,
-            'amount': parseFloat (amount),
-            'address': address,
-        }, params));
-        return {
-            'info': response,
-            'id': response['return']['tId'],
-        };
     }
 
     signBodyWithSecret (body) {
