@@ -108,7 +108,7 @@ module.exports = class ccex extends Exchange {
 
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
-        let response = await this.privateGetGetBalances ();
+        let response = await this.privateGetGetbalances ();
         let balances = response['result'];
         let result = { 'info': balances };
         for (let b = 0; b < balances.length; b++) {
@@ -126,7 +126,7 @@ module.exports = class ccex extends Exchange {
     }
 
     async fetchDepositAddress (currency, params = {}) {
-        let response = await this.privateGetBalance (this.extend ({
+        let response = await this.privateGetGetbalance (this.extend ({
             'currency': currency.toUpperCase(),
         }, params));
         if ('success' in response) {
