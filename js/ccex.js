@@ -309,7 +309,7 @@ module.exports = class ccex extends Exchange {
             this.checkRequiredCredentials ();
             let nonce = this.nonce ().toString ();
             let query = this.keysort (this.extend ({
-                'a': path,
+                'a': path.toLowerCase(),
                 'apikey': this.apiKey,
                 'nonce': nonce,
             }, params));
