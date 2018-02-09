@@ -18,6 +18,7 @@ module.exports = class ccex extends Exchange {
                 'CORS': false,
                 'fetchTickers': true,
                 'fetchOrderBooks': true,
+                'fetchDepositAddress': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27766433-16881f90-5ed8-11e7-92f8-3d92cc747a6c.jpg',
@@ -121,6 +122,24 @@ module.exports = class ccex extends Exchange {
             result[currency] = account;
         }
         return this.parseBalance (result);
+    }
+
+    async fetchDepositAddress (currency, params = {}) {
+        let response = await this.privateGetBalance (this.extend ({
+            'currency': currency.toUpperCase(),
+        }, params));
+        if ('success' in response) {
+            if (response['success'] == "true") {
+                let address = this.safeString (response.result.CryptoAddress, 'address');
+                return {
+                    'currency': currency,
+                    'address': address,
+                    'status': 'ok',
+                    'info': response,
+                };
+            }
+        }
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
     async fetchOrderBook (symbol, limit = undefined, params = {}) {
