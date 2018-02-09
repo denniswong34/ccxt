@@ -19,6 +19,7 @@ module.exports = class ccex extends Exchange {
                 'fetchTickers': true,
                 'fetchOrderBooks': true,
                 'fetchDepositAddress': true,
+                'fetchBalance': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27766433-16881f90-5ed8-11e7-92f8-3d92cc747a6c.jpg',
@@ -107,7 +108,7 @@ module.exports = class ccex extends Exchange {
 
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
-        let response = await this.privateGetBalances ();
+        let response = await this.privateGetGetBalances ();
         let balances = response['result'];
         let result = { 'info': balances };
         for (let b = 0; b < balances.length; b++) {
