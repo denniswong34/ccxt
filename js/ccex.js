@@ -113,7 +113,7 @@ module.exports = class ccex extends Exchange {
         let result = { 'info': balances };
         for (let b = 0; b < balances.length; b++) {
             let balance = balances[b];
-            let code = balance['Currency'];
+            let code = balance['BaseCurrency'];
             let currency = this.commonCurrencyCode (code);
             let account = {
                 'free': balance['Available'],
@@ -130,8 +130,8 @@ module.exports = class ccex extends Exchange {
             'currency': currency.toUpperCase(),
         }, params));
         if ('success' in response) {
-            if (response['success'] == "true") {
-                let address = this.safeString (response.result.CryptoAddress, 'address');
+            if (response['success']) {
+                let address = this.safeString (response.result, 'CryptoAddress');
                 return {
                     'currency': currency,
                     'address': address,
@@ -314,6 +314,7 @@ module.exports = class ccex extends Exchange {
                 'nonce': nonce,
             }, params));
             url += '?' + this.urlencode (query);
+            console.log("apisign: " + this.hmac (this.encode (url), this.encode (this.secret), 'sha512'));
             headers = { 'apisign': this.hmac (this.encode (url), this.encode (this.secret), 'sha512') };
         } else if (api === 'public') {
             url += '?' + this.urlencode (this.extend ({
