@@ -113,7 +113,7 @@ module.exports = class ccex extends Exchange {
         let result = { 'info': balances };
         for (let b = 0; b < balances.length; b++) {
             let balance = balances[b];
-            let code = balance['BaseCurrency'];
+            let code = balance['Currency'];
             let currency = this.commonCurrencyCode (code);
             let account = {
                 'free': balance['Available'],
