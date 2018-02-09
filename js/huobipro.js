@@ -264,12 +264,10 @@ module.exports = class huobipro extends Exchange {
         }, params));
         if ('status' in response) {
             if (response['status'] == "ok") {
-                let address = this.safeString (response.data, 'address');
-                let tag = this.safeString (response.data, 'addr-tag');
+                let address = this.safeString (response, 'data');
                 return {
                     'currency': currency,
                     'address': address,
-                    'tag': tag,
                     'status': 'ok',
                     'info': response,
                 };

@@ -24,6 +24,7 @@ module.exports = class okcoinusd extends Exchange {
                 'fetchClosedOrders': true,
                 'withdraw': true,
                 'futures': false,
+                'fetchDepositAddress': true,
             },
             'extension': '.do', // appended to endpoint URL
             'timeframes': {
@@ -559,6 +560,29 @@ module.exports = class okcoinusd extends Exchange {
         let response = await this[method] (this.extend (request, params));
         let ordersField = this.getOrdersField ();
         return this.parseOrders (response[ordersField], market, since, limit);
+    }
+    
+    async fetchDepositAddress (currency, params = {}) {
+        let response = await this.privatePostAccountRecords (this.extend ({
+            'symbol': currency.toLowerCase(),
+            'type': 0,
+            'current_page': 1,
+            'page_length': 1,
+        }, params));
+        
+        console.log(response);
+        if ('status' in response.records[0]) {
+            if (response.records[0]['status'] == "1") {
+                let address = this.safeString (response.records[0], 'addr');
+                return {
+                    'currency': currency,
+                    'address': address,
+                    'status': 'ok',
+                    'info': response,
+                };
+            }
+        }
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
     async fetchOpenOrders (symbol = undefined, since = undefined, limit = undefined, params = {}) {
