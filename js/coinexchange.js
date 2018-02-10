@@ -678,6 +678,31 @@ module.exports = class coinexchange extends Exchange {
         let orderbook = await this.publicGetGetorderbook (this.extend ({
             'market_id': this.marketId (symbol),
         }, params));
+
+        //Group save price to one depth
+        let tmpOrderBook = { 'result': { 'SellOrders':{}, 'BuyOrders':{} }};
+        for(var orderbookRecord of orderbook.result.BuyOrders) {
+            if(orderbookRecord.Price in tmpOrderBook['result']['BuyOrders']) {
+                tmpOrderBook['result']['BuyOrders'][orderbookRecord.Price] +=  parseFloat(orderbookRecord.Quantity);
+            } else {
+                tmpOrderBook['result']['BuyOrders'][orderbookRecord.Price] = parseFloat(orderbookRecord.Quantity);
+            }
+        }
+        for(var orderbookRecord of orderbook.result.SellOrders) {
+            if(orderbookRecord.Price in tmpOrderBook['result']['SellOrders']) {
+                tmpOrderBook['result']['SellOrders'][orderbookRecord.Price] +=  parseFloat(orderbookRecord.Quantity);
+            } else {
+                tmpOrderBook['result']['SellOrders'][orderbookRecord.Price] = parseFloat(orderbookRecord.Quantity);
+            }
+        }
+
+        orderbook = { 'result': { 'SellOrders':[], 'BuyOrders':[] }};
+        for(var buyPrice in tmpOrderBook.result.BuyOrders) {
+            orderbook.result.BuyOrders.push({'Price': buyPrice, 'Quantity': tmpOrderBook.result.BuyOrders[buyPrice]});
+        }
+        for(var sellPrice in tmpOrderBook.result.SellOrders) {
+            orderbook.result.SellOrders.push({'Price': sellPrice, 'Quantity': tmpOrderBook.result.SellOrders[sellPrice]});
+        }
         return this.parseOrderBook (orderbook['result'], undefined, 'BuyOrders', 'SellOrders', 'Price', 'Quantity');
     }
 
