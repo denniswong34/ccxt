@@ -654,7 +654,23 @@ module.exports = class Exchange {
     }
 
     parseBidsAsks (bidasks, priceKey = 0, amountKey = 1) {
-        return Object.values (bidasks || []).map (bidask => this.parseBidAsk (bidask, priceKey, amountKey))
+        var bidsAsksList = Object.values (bidasks || []).map (bidask => this.parseBidAsk (bidask, priceKey, amountKey));
+
+        //Group by same price
+        let tmpBidsAsksList = {};
+        for(var idx in bidsAsksList) {
+            if(bidsAsksList[idx][0] in tmpBidsAsksList) {
+                tmpBidsAsksList[bidsAsksList[idx][0]] +=  parseFloat(bidsAsksList[idx][1]);
+            } else {
+                tmpBidsAsksList[bidsAsksList[idx][0]] =  parseFloat(bidsAsksList[idx][1]);
+            }
+        }
+
+        bidsAsksList = [];
+        for(var price in tmpBidsAsksList) {
+            bidsAsksList.push([price, tmpBidsAsksList[price]]);
+        }
+        return bidsAsksList;
     }
 
     async fetchL2OrderBook (symbol, limit = undefined, params = {}) {
