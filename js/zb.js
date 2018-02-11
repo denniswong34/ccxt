@@ -180,7 +180,7 @@ module.exports = class zb extends Exchange {
             account['free'] = parseFloat (balance['available']);
             account['used'] = parseFloat (balance['freez']);
             account['total'] = this.sum (account['free'], account['used']);
-            result[currency] = account;
+            result[currency.toUpperCase()] = account;
         }
         return this.parseBalance (result);
     }
