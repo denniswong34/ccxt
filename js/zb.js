@@ -371,12 +371,11 @@ module.exports = class zb extends Exchange {
         } else {
             this.checkRequiredCredentials ();
             let nonce = this.nonce ();
-            let extraParams = "";
-            if (Object.keys (params).length)
-            	extraParams += this.urlencode (params);
-            
-            let auth = 'accesskey=' + this.apiKey;
-            auth += '&' + extraParams + '&' + 'method=' + path;
+            let query = this.keysort (this.extend ({
+                'accesskey': this.apiKey,
+                'method': path,
+            }, params));
+            let auth = this.rawencode (query) + '&secret_key=' + this.secret;
             let secret = this.hash (this.encode (this.secret), 'sha1');
             let signature = this.hmac (this.encode (auth), this.encode (secret), 'md5');
             let suffix = 'sign=' + signature + '&reqTime=' + nonce.toString ();
