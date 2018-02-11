@@ -24,6 +24,7 @@ class binance extends Exchange {
                 'fetchOrder' => true,
                 'fetchOrders' => true,
                 'fetchOpenOrders' => true,
+                'fetchClosedOrders' => true,
                 'withdraw' => true,
             ),
             'timeframes' => array (
@@ -74,6 +75,8 @@ class binance extends Exchange {
                         'depositHistory',
                         'withdrawHistory',
                         'depositAddress',
+                        'accountStatus',
+                        'systemStatus',
                     ),
                 ),
                 'v3' => array (
@@ -471,8 +474,8 @@ class binance extends Exchange {
             'close' => $this->safe_float($ticker, 'prevClosePrice'),
             'first' => null,
             'last' => $this->safe_float($ticker, 'lastPrice'),
-            'change' => $this->safe_float($ticker, 'priceChangePercent'),
-            'percentage' => null,
+            'change' => $this->safe_float($ticker, 'priceChange'),
+            'percentage' => $this->safe_float($ticker, 'priceChangePercent'),
             'average' => null,
             'baseVolume' => $this->safe_float($ticker, 'volume'),
             'quoteVolume' => $this->safe_float($ticker, 'quoteVolume'),

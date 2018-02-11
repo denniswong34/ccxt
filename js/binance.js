@@ -25,6 +25,7 @@ module.exports = class binance extends Exchange {
                 'fetchOrder': true,
                 'fetchOrders': true,
                 'fetchOpenOrders': true,
+                'fetchClosedOrders': true,
                 'withdraw': true,
             },
             'timeframes': {
@@ -75,6 +76,8 @@ module.exports = class binance extends Exchange {
                         'depositHistory',
                         'withdrawHistory',
                         'depositAddress',
+                        'accountStatus',
+                        'systemStatus',
                     ],
                 },
                 'v3': {
@@ -472,8 +475,8 @@ module.exports = class binance extends Exchange {
             'close': this.safeFloat (ticker, 'prevClosePrice'),
             'first': undefined,
             'last': this.safeFloat (ticker, 'lastPrice'),
-            'change': this.safeFloat (ticker, 'priceChangePercent'),
-            'percentage': undefined,
+            'change': this.safeFloat (ticker, 'priceChange'),
+            'percentage': this.safeFloat (ticker, 'priceChangePercent'),
             'average': undefined,
             'baseVolume': this.safeFloat (ticker, 'volume'),
             'quoteVolume': this.safeFloat (ticker, 'quoteVolume'),

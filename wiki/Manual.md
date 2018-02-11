@@ -145,7 +145,7 @@ The ccxt library currently supports the following 99 cryptocurrency exchange mar
 |![southxchange](https://user-images.githubusercontent.com/1294454/27838912-4f94ec8a-60f6-11e7-9e5d-bbf9bd50a559.jpg)       | southxchange       | [SouthXchange](https://www.southxchange.com)              | *   | [API](https://www.southxchange.com/Home/Api)                                                 | Argentina                               |
 |![surbitcoin](https://user-images.githubusercontent.com/1294454/27991511-f0a50194-6481-11e7-99b5-8f02932424cc.jpg)         | surbitcoin         | [SurBitcoin](https://surbitcoin.com)                      | 1   | [API](https://blinktrade.com/docs)                                                           | Venezuela                               |
 |![therock](https://user-images.githubusercontent.com/1294454/27766869-75057fa2-5ee9-11e7-9a6f-13e641fa4707.jpg)            | therock            | [TheRockTrading](https://therocktrading.com)              | 1   | [API](https://api.therocktrading.com/doc/v1/index.html)                                      | Malta                                   |
-|![tidex](https://user-images.githubusercontent.com/1294454/30781780-03149dc4-a12e-11e7-82bb-313b269d24d4.jpg)              | tidex              | [Tidex](https://tidex.com)                                | 3   | [API](https://tidex.com/public-api)                                                          | UK                                      |
+|![tidex](https://user-images.githubusercontent.com/1294454/30781780-03149dc4-a12e-11e7-82bb-313b269d24d4.jpg)              | tidex              | [Tidex](https://tidex.com)                                | 3   | [API](https://tidex.com/exchange/public-api)                                                 | UK                                      |
 |![urdubit](https://user-images.githubusercontent.com/1294454/27991453-156bf3ae-6480-11e7-82eb-7295fe1b5bb4.jpg)            | urdubit            | [UrduBit](https://urdubit.com)                            | 1   | [API](https://blinktrade.com/docs)                                                           | Pakistan                                |
 |![vaultoro](https://user-images.githubusercontent.com/1294454/27766880-f205e870-5ee9-11e7-8fe2-0d5b15880752.jpg)           | vaultoro           | [Vaultoro](https://www.vaultoro.com)                      | 1   | [API](https://api.vaultoro.com)                                                              | Switzerland                             |
 |![vbtc](https://user-images.githubusercontent.com/1294454/27991481-1f53d1d8-6481-11e7-884e-21d17e7939db.jpg)               | vbtc               | [VBTC](https://vbtc.exchange)                             | 1   | [API](https://blinktrade.com/docs)                                                           | Vietnam                                 |
@@ -456,7 +456,7 @@ Each market is an associative array (aka dictionary) with the following keys:
 
 ### Precision And Limits
 
-**Do not confuse `limits` with `precision`!** Precision has nothing to do with min limits. A precision of 8 digits does not necessarily mean a min limit of 0.0000001. The opposite is also true: a min limit of 0.0001 does not necessarily mean a precision of 4.
+**Do not confuse `limits` with `precision`!** Precision has nothing to do with min limits. A precision of 8 digits does not necessarily mean a min limit of 0.00000001. The opposite is also true: a min limit of 0.0001 does not necessarily mean a precision of 4.
 
 Examples:
 
@@ -1819,8 +1819,6 @@ Below is an outline of exception inheritance hierarchy:
 |   |
 |   +---+ AuthenticationError
 |   |
-|   +---+ InvalidNonce
-|   |
 |   +---+ InsufficientFunds
 |   |
 |   +---+ InvalidOrder
@@ -1834,38 +1832,44 @@ Below is an outline of exception inheritance hierarchy:
     +---+ RequestTimeout
     |
     +---+ ExchangeNotAvailable
+    |
+    +---+ InvalidNonce
 ```
 
 - `BaseError`: Generic error class for all sorts of errors, including accessibility and request/response mismatch. Users should catch this exception at the very least, if no error differentiation is required.
-- `ExchangeError`: This exception is thrown when an exchange server replies with an error in JSON, possible reasons:
+
+  - `ExchangeError`: This exception is thrown when an exchange server replies with an error in JSON. Possible reasons:
     - endpoint is switched off by the exchange
     - symbol not found on the exchange
-    - some additional endpoint parameter required by the exchange is missing
-    - the format of some parameters passed into the endpoint is incorrect
+    - required parameter is missing
+    - the format of parameters is incorrect
     - an exchange replies with an unclear answer
-- `NotSupported`: This exception is raised if the endpoint is not offered/not supported by the exchange API.
-- `InsufficientFunds`: This exception is raised when you don't have enough currency on your account balance to place an order.
-- `InvalidOrder`: This exception is the base class for all exceptions related to the unified order API.
-    - `OrderNotFound`: Raised when you are trying to fetch or cancel a non-existent order.
-- `AuthenticationError`: Raised when an exchange requires one of the API credentials that you've missed to specify, or when there's a mistake in the keypair or an outdated nonce. Most of the time you need `apiKey` and `secret`, some times you also need `uid` and/or `password`.
-- `InvalidNonce`: Raised when your nonce is less than the previous nonce used with your keypair, as described in the [Authentication](https://github.com/ccxt/ccxt/wiki/Manual#authentication) section. This type of exception is thrown in these cases (in order of precedence for checking):
-    - Your API keys are not fresh and new (have been used with some different software or script already).
-    - The same keypair is shared across multiple instances of the exchange class (for example, in a multithreaded environment or in separate processes).
-    - Your system clock is out of synch. System time should be synched with UTC in a non-DST timezone at a rate of once every ten minutes or even more frequently because of the clock drifting. **Enabling time synch in Windows is usually not enough!** You have to set it up with the OS Registry (Google *"time synch frequency"* for your OS).
-- `NetworkError`: All errors related to networking are usually recoverable, meaning that networking problems, traffic congestion, unavailability is usually time-dependent. Making a retry later is usually enough to recover from a NetworkError, but if it doesn't go away, then it may indicate some persistent problem with the exchange or with your connection.
+
+    Other exceptions derived from `ExchangeError`:
+    - `NotSupported`: This exception is raised if the endpoint is not offered/not supported by the exchange API.
+    - `AuthenticationError`: Raised when an exchange requires one of the API credentials that you've missed to specify, or when there's a mistake in the keypair or an outdated nonce. Most of the time you need `apiKey` and `secret`, sometimes you also need `uid` and/or `password`.
+    - `InsufficientFunds`: This exception is raised when you don't have enough currency on your account balance to place an order.
+    - `InvalidOrder`: This exception is the base class for all exceptions related to the unified order API.
+      - `OrderNotFound`: Raised when you are trying to fetch or cancel a non-existent order.
+
+  - `NetworkError`: All errors related to networking are usually recoverable, meaning that networking problems, traffic congestion, unavailability is usually time-dependent. Making a retry later is usually enough to recover from a NetworkError, but if it doesn't go away, then it may indicate some persistent problem with the exchange or with your connection.
     - `DDoSProtection`: This exception is thrown whenever Cloudflare or Incapsula rate limiter restrictions are enforced per user or region/location. The ccxt library does a case-insensitive search in the response received from the exchange for one of the following keywords:
-        - `cloudflare`
-        - `incapsula`
+      - `cloudflare`
+      - `incapsula`
     - `RequestTimeout`: The name literally says it all. This exception is raised when connection with the exchange fails or data is not fully received in a specified amount of time. This is controlled by the `timeout` option.
     - `ExchangeNotAvailable`: The ccxt library throws this error if it detects any of the following keywords in response:
-        - `offline`
-        - `unavailable`
-        - `busy`
-        - `retry`
-        - `wait`
-        - `maintain`
-        - `maintenance`
-        - `maintenancing`
+      - `offline`
+      - `unavailable`
+      - `busy`
+      - `retry`
+      - `wait`
+      - `maintain`
+      - `maintenance`
+      - `maintenancing`
+    - `InvalidNonce`: Raised when your nonce is less than the previous nonce used with your keypair, as described in the [Authentication](https://github.com/ccxt/ccxt/wiki/Manual#authentication) section. This type of exception is thrown in these cases (in order of precedence for checking):
+      - Your API keys are not fresh and new (have been used with some different software or script already).
+      - The same keypair is shared across multiple instances of the exchange class (for example, in a multithreaded environment or in separate processes).
+      - Your system clock is out of synch. System time should be synched with UTC in a non-DST timezone at a rate of once every ten minutes or even more frequently because of the clock drifting. **Enabling time synch in Windows is usually not enough!** You have to set it up with the OS Registry (Google *"time synch frequency"* for your OS).
 
 # Troubleshooting
 

@@ -15,9 +15,9 @@ import hashlib
 import json
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import AuthenticationError
-from ccxt.base.errors import InvalidNonce
 from ccxt.base.errors import InsufficientFunds
 from ccxt.base.errors import InvalidOrder
+from ccxt.base.errors import InvalidNonce
 
 
 class bitbay (Exchange):
@@ -221,6 +221,8 @@ class bitbay (Exchange):
         return self.parse_trades(response, market, since, limit)
 
     async def create_order(self, symbol, type, side, amount, price=None, params={}):
+        if type != 'limit':
+            raise ExchangeError(self.id + ' allows limit orders only')
         market = self.market(symbol)
         return self.privatePostTrade(self.extend({
             'type': side,

@@ -39,6 +39,7 @@ class binance (Exchange):
                 'fetchOrder': True,
                 'fetchOrders': True,
                 'fetchOpenOrders': True,
+                'fetchClosedOrders': True,
                 'withdraw': True,
             },
             'timeframes': {
@@ -89,6 +90,8 @@ class binance (Exchange):
                         'depositHistory',
                         'withdrawHistory',
                         'depositAddress',
+                        'accountStatus',
+                        'systemStatus',
                     ],
                 },
                 'v3': {
@@ -471,8 +474,8 @@ class binance (Exchange):
             'close': self.safe_float(ticker, 'prevClosePrice'),
             'first': None,
             'last': self.safe_float(ticker, 'lastPrice'),
-            'change': self.safe_float(ticker, 'priceChangePercent'),
-            'percentage': None,
+            'change': self.safe_float(ticker, 'priceChange'),
+            'percentage': self.safe_float(ticker, 'priceChangePercent'),
             'average': None,
             'baseVolume': self.safe_float(ticker, 'volume'),
             'quoteVolume': self.safe_float(ticker, 'quoteVolume'),
