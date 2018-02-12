@@ -249,7 +249,7 @@ module.exports = class huobipro extends Exchange {
             			allRequests.push(await this.fetchTicker(market.symbol, params));
                 	} catch (e) {
                 		error = true;
-                		sleep(11000);
+                		try{sleep(11000);} catch (e) {}
                 		error = false;
                 	}
             	} while(error);
