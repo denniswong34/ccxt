@@ -267,14 +267,11 @@ module.exports = class zb extends Exchange {
     }
     
     async fetchDepositAddress (currency, params = {}) {
-    	console.log("currency=" + currency.toLowerCase());
-    	let requestParams = "&currency=" + currency.toLowerCase();
+		let requestParams = "&currency=" + currency.toLowerCase();
         let response = await this.privateGetGetUserAddress(this.extend ({"currency": currency.toLowerCase()}, params));
-        console.log(response);
         if ('message' in response) {
             if (response['message'].des == "success") {
-                let address = this.safeString (response.message.datas.key, 'address');
-                //let tag = this.safeString (response.data, 'addr-tag');
+                let address = this.safeString (response.message.datas, 'key');
                 return {
                     'currency': currency,
                     'address': address,
@@ -283,6 +280,7 @@ module.exports = class zb extends Exchange {
                 };
             }
         }
+    	
         throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
@@ -381,6 +379,7 @@ module.exports = class zb extends Exchange {
             let suffix = 'sign=' + signature + '&reqTime=' + nonce.toString ();
             
             url += '/' + path + '?' + auth + '&' + suffix;
+            console.log("End of sign...");
         }
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
     }
@@ -410,7 +409,7 @@ module.exports = class zb extends Exchange {
     async request (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
         let response = await this.fetch2 (path, api, method, params, headers, body);
         if (api === 'private')
-            if ('code' in response)
+            if ('code' in response && response.code != 1000)
                 throw new ExchangeError (this.id + ' ' + this.json (response));
         return response;
     }
