@@ -3,7 +3,7 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { NotImplemented, DDoSProtection, AuthenticationError, ExchangeError, InsufficientFunds, NotSupported, InvalidOrder, OrderNotFound, InvalidNonce } = require ('./base/errors');
+const { NotSupported, DDoSProtection, AuthenticationError, ExchangeError, InsufficientFunds, InvalidOrder, OrderNotFound, InvalidNonce } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -287,7 +287,7 @@ module.exports = class bitfinex extends Exchange {
         // const fees = await this.fetchFundingFees ();
         // funding = this.deepExtend (funding, fees);
         // return funding;
-        throw new NotImplemented (this.id + ' loadFees() not implemented yet');
+        throw new NotSupported (this.id + ' loadFees() not implemented yet');
     }
 
     async fetchFees () {  // this can be removed since it is now dealt with in the base class
@@ -445,6 +445,17 @@ module.exports = class bitfinex extends Exchange {
         let price = parseFloat (trade['price']);
         let amount = parseFloat (trade['amount']);
         let cost = price * amount;
+        let fee = undefined;
+        if ('fee_amount' in trade) {
+            let feeCost = this.safeFloat (trade, 'fee_amount');
+            let feeCurrency = this.safeString (trade, 'fee_currency');
+            if (feeCurrency in this.currencies_by_id)
+                feeCurrency = this.currencies_by_id[feeCurrency]['code'];
+            fee = {
+                'cost': feeCost,
+                'currency': feeCurrency,
+            };
+        }
         return {
             'id': trade['tid'].toString (),
             'info': trade,
@@ -457,7 +468,7 @@ module.exports = class bitfinex extends Exchange {
             'price': price,
             'amount': amount,
             'cost': cost,
-            'fee': undefined,
+            'fee': fee,
         };
     }
 

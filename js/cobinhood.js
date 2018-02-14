@@ -266,7 +266,7 @@ module.exports = class cobinhood extends Exchange {
         if (typeof limit !== 'undefined')
             request['limit'] = limit; // 100
         let response = await this.publicGetMarketOrderbooksTradingPairId (this.extend (request, params));
-        return this.parseOrderBook (response['result']['orderbook']);
+        return this.parseOrderBook (response['result']['orderbook'], undefined, 'bids', 'asks', 0, 2);
     }
 
     parseTrade (trade, market = undefined) {

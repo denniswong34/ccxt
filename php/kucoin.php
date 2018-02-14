@@ -95,6 +95,7 @@ class kucoin extends Exchange {
                     'post' => array (
                         'account/{coin}/withdraw/apply',
                         'account/{coin}/withdraw/cancel',
+                        'account/promotion/draw',
                         'cancel-order',
                         'order',
                         'order/cancel-all',
@@ -304,6 +305,8 @@ class kucoin extends Exchange {
             $price = $this->safe_float($order, 'dealPrice');
         if ($price === null)
             $price = $this->safe_float($order, 'dealPriceAverage');
+        if ($price === null)
+            $price = $this->safe_float($order, 'orderPrice');
         $remaining = $this->safe_float($order, 'pendingAmount');
         $status = $this->safe_value($order, 'status');
         $filled = $this->safe_float($order, 'dealAmount');
@@ -335,6 +338,8 @@ class kucoin extends Exchange {
                 $remaining = $amount - $filled;
             }
         }
+        if (($status === 'open') && ($cost === null))
+            $cost = $price * $amount;
         $side = $this->safe_value($order, 'direction');
         if ($side === null)
             $side = $order['type'];

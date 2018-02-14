@@ -293,7 +293,7 @@ class bitfinex (Exchange):
         # fees = await self.fetch_funding_fees()
         # funding = self.deep_extend(funding, fees)
         # return funding
-        raise NotImplemented(self.id + ' loadFees() not implemented yet')
+        raise NotSupported(self.id + ' loadFees() not implemented yet')
 
     async def fetch_fees(self):
         fundingFees = await self.fetch_funding_fees()
@@ -435,6 +435,16 @@ class bitfinex (Exchange):
         price = float(trade['price'])
         amount = float(trade['amount'])
         cost = price * amount
+        fee = None
+        if 'fee_amount' in trade:
+            feeCost = self.safe_float(trade, 'fee_amount')
+            feeCurrency = self.safe_string(trade, 'fee_currency')
+            if feeCurrency in self.currencies_by_id:
+                feeCurrency = self.currencies_by_id[feeCurrency]['code']
+            fee = {
+                'cost': feeCost,
+                'currency': feeCurrency,
+            }
         return {
             'id': str(trade['tid']),
             'info': trade,
@@ -447,7 +457,7 @@ class bitfinex (Exchange):
             'price': price,
             'amount': amount,
             'cost': cost,
-            'fee': None,
+            'fee': fee,
         }
 
     async def fetch_trades(self, symbol, since=None, limit=None, params={}):

@@ -97,6 +97,7 @@ module.exports = class kucoin extends Exchange {
                     'post': [
                         'account/{coin}/withdraw/apply',
                         'account/{coin}/withdraw/cancel',
+                        'account/promotion/draw',
                         'cancel-order',
                         'order',
                         'order/cancel-all',
@@ -306,6 +307,8 @@ module.exports = class kucoin extends Exchange {
             price = this.safeFloat (order, 'dealPrice');
         if (typeof price === 'undefined')
             price = this.safeFloat (order, 'dealPriceAverage');
+        if (typeof price === 'undefined')
+            price = this.safeFloat (order, 'orderPrice');
         let remaining = this.safeFloat (order, 'pendingAmount');
         let status = this.safeValue (order, 'status');
         let filled = this.safeFloat (order, 'dealAmount');
@@ -337,6 +340,8 @@ module.exports = class kucoin extends Exchange {
                 remaining = amount - filled;
             }
         }
+        if ((status === 'open') && (typeof cost === 'undefined'))
+            cost = price * amount;
         let side = this.safeValue (order, 'direction');
         if (typeof side === 'undefined')
             side = order['type'];
