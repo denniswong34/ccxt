@@ -24,7 +24,7 @@ module.exports = class okcoinusd extends Exchange {
                 'fetchClosedOrders': true,
                 'withdraw': true,
                 'futures': false,
-                'fetchDepositAddress': true,
+                'fetchDepositAddress': false,
             },
             'extension': '.do', // appended to endpoint URL
             'timeframes': {
