@@ -14,7 +14,7 @@ module.exports = class tradesatoshi extends Exchange {
             'id': 'tradesatoshi',
             'name': 'TradeSatoshi',
             'countries': 'US',
-            'version': '*',
+            'version': '',
             'rateLimit': 1500,
             'hasCORS': false,
             // obsolete metainfo interface
@@ -88,10 +88,10 @@ module.exports = class tradesatoshi extends Exchange {
                         'withdrawals',
                         'withdrawalhistory',
                         'withdraw',
+                        'generateaddress',
+                        'submitwithdraw',
+                        'submittransfer',
                     ],
-                    'generateaddress',
-                    'submitwithdraw',
-                    'submittransfer',
                 },
                 'market': {
                     'get': [
@@ -148,13 +148,14 @@ module.exports = class tradesatoshi extends Exchange {
     }
 
     async fetchMarkets () {
-        let response = await this.v2GetMarketsGetMarketSummaries ();
+        let response = await this.publicGetMarketsummaries ();
         let result = [];
         for (let i = 0; i < response['result'].length; i++) {
-            let market = response['result'][i]['Market'];
-            let id = market['MarketName'];
-            let base = market['MarketCurrency'];
-            let quote = market['BaseCurrency'];
+            let market = response['result'][i];
+            let id = market['market'];
+
+            let base = id.split("_")[0];
+            let quote = id.split("_")[1];
             base = this.commonCurrencyCode (base);
             quote = this.commonCurrencyCode (quote);
             let symbol = base + '/' + quote;
@@ -163,7 +164,7 @@ module.exports = class tradesatoshi extends Exchange {
                 'price': 8,
             };
             let amountLimits = {
-                'min': market['MinTradeSize'],
+                'min': undefined,
                 'max': undefined,
             };
             let priceLimits = { 'min': undefined, 'max': undefined };
@@ -218,7 +219,7 @@ module.exports = class tradesatoshi extends Exchange {
             'depth': 50,
         }, params));
         let orderbook = response['result'];
-        return this.parseOrderBook (orderbook, undefined, 'buy', 'sell', 'Rate', 'Quantity');
+        return this.parseOrderBook (orderbook, undefined, 'buy', 'sell', 'rate', 'quantity');
     }
 
     parseTicker (ticker, market = undefined) {

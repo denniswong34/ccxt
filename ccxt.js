@@ -133,6 +133,7 @@ const exchanges = {
     'surbitcoin':              require ('./js/surbitcoin.js'),
     'therock':                 require ('./js/therock.js'),
     'tidex':                   require ('./js/tidex.js'),
+    'tradesatoshi':            require ('./js/tradesatoshi.js'),
     'urdubit':                 require ('./js/urdubit.js'),
     'vaultoro':                require ('./js/vaultoro.js'),
     'vbtc':                    require ('./js/vbtc.js'),
