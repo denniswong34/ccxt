@@ -52,8 +52,7 @@ module.exports = class tradesatoshi extends Exchange {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg',
                 'api': {
                     'public': 'https://tradesatoshi.com/api',
-                    'account': 'https://tradesatoshi.com/api',
-                    'market': 'https://tradesatoshi.com/api',
+                    'private': 'https://tradesatoshi.com/api',
                 },
                 'www': 'https://tradesatoshi.com',
                 'doc': [
@@ -77,30 +76,19 @@ module.exports = class tradesatoshi extends Exchange {
                     ],
                 },
                 'private': {
-                    'get': [
-                        'balance',
-                        'balances',
-                        'deposits',
-                        'depositaddress',
-                        'deposithistory',
-                        'order',
-                        'orderhistory',
-                        'withdrawals',
-                        'withdrawalhistory',
-                        'withdraw',
+                    'post': [
+                        'getbalance',
+                        'getbalances',
+                        'getorder',
+                        'getorders',
+                        'submitorder',
+                        'cancelorder',
+                        'gettradehistory',
                         'generateaddress',
                         'submitwithdraw',
+                        'getdeposits',
+                        'getwithdrawals',
                         'submittransfer',
-                    ],
-                },
-                'market': {
-                    'get': [
-                        'buylimit',
-                        'buymarket',
-                        'cancel',
-                        'openorders',
-                        'selllimit',
-                        'sellmarket',
                     ],
                 },
             },
@@ -189,8 +177,8 @@ module.exports = class tradesatoshi extends Exchange {
     }
 
     async fetchBalance (params = {}) {
-        await this.loadMarkets ();
-        let response = await this.accountGetBalances ();
+        //await this.loadMarkets ();
+        let response = await this.privatePostGetbalances ();
         let balances = response['result'];
         let result = { 'info': balances };
         let indexed = this.indexBy (balances, 'Currency');
@@ -198,10 +186,9 @@ module.exports = class tradesatoshi extends Exchange {
         for (let i = 0; i < keys.length; i++) {
             let id = keys[i];
             let currency = this.commonCurrencyCode (id);
-            let account = this.account ();
             let balance = indexed[id];
             let free = parseFloat (balance['Available']);
-            let total = parseFloat (balance['Balance']);
+            let total = parseFloat (balance['Total']);
             let used = total - free;
             account['free'] = free;
             account['used'] = used;
@@ -588,28 +575,21 @@ module.exports = class tradesatoshi extends Exchange {
 
     sign (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
         let url = this.urls['api'][api] + '/';
-        if (api != 'v2')
-            url += this.version + '/';
         if (api == 'public') {
             url += api + '/' + method.toLowerCase () + path;
             if (Object.keys (params).length)
-                url += '?' + this.urlencode (params);
-        } else if (api == 'v2') {
-            url += path;
-            if (Object.keys (params).length)
-                url += '?' + this.urlencode (params);
+                body += this.urlencode (params);
         } else {
             this.checkRequiredCredentials ();
             let nonce = this.nonce ();
+            let secretKey = new Buffer(this.secret,"base64").toString("ascii");
             url += api + '/';
-            if (((api == 'account') && (path != 'withdraw')) || (path == 'openorders'))
-                url += method.toLowerCase ();
-            url += path + '?' + this.urlencode (this.extend ({
-                'nonce': nonce,
-                'apikey': this.apiKey,
-            }, params));
-            let signature = this.hmac (this.encode (url), this.encode (this.secret), 'sha512');
-            headers = { 'apisign': signature };
+            url += path;
+            body = this.urlencode (params);
+            let signature = new Buffer(this.hmac (this.apiKey + 'POST' + this.encode (url) + nonce + new Buffer(JSON.stringify(params)).toString('base64'), secretKey, 'sha512')).toString('base64');
+            headers = {
+                'Authorization': 'Basic ' + this.apiKey + ':' + signature + ':' + nonce,
+            };
         }
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
     }
