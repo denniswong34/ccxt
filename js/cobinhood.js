@@ -20,6 +20,9 @@ module.exports = class cobinhood extends Exchange {
                 'fetchOpenOrders': true,
                 'fetchClosedOrders': true,
                 'fetchOrder': true,
+                'fetchOrderBook': true,
+                'fetchBalance': true,
+                'fetchDepositAddress': true,
             },
             'timeframes': {
                 // the first two don't seem to work at all
