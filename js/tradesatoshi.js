@@ -33,6 +33,8 @@ module.exports = class tradesatoshi extends Exchange {
                 'fetchOHLCV': true,
                 'fetchOrder': true,
                 'fetchOrders': true,
+                'fetchOrderBook': true,
+                'fetchBalance': true,
                 'fetchClosedOrders': 'emulated',
                 'fetchOpenOrders': true,
                 'fetchMyTrades': false,
@@ -49,15 +51,13 @@ module.exports = class tradesatoshi extends Exchange {
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg',
                 'api': {
-                    'public': 'https://bittrex.com/api',
-                    'account': 'https://bittrex.com/api',
-                    'market': 'https://bittrex.com/api',
-                    'v2': 'https://bittrex.com/api/v2.0/pub',
+                    'public': 'https://tradesatoshi.com/api',
+                    'account': 'https://tradesatoshi.com/api',
+                    'market': 'https://tradesatoshi.com/api',
                 },
-                'www': 'https://bittrex.com',
+                'www': 'https://tradesatoshi.com',
                 'doc': [
-                    'https://bittrex.com/Home/Api',
-                    'https://www.npmjs.org/package/node.bittrex.api',
+                    'https://tradesatoshi.com/Home/Api',
                 ],
                 'fees': [
                     'https://bittrex.com/Fees',
@@ -65,15 +65,6 @@ module.exports = class tradesatoshi extends Exchange {
                 ],
             },
             'api': {
-                'v2': {
-                    'get': [
-                        'currencies/GetBTCPrice',
-                        'market/GetTicks',
-                        'market/GetLatestTick',
-                        'Markets/GetMarketSummaries',
-                        'market/GetLatestTick',
-                    ],
-                },
                 'public': {
                     'get': [
                         'currencies',
@@ -85,17 +76,22 @@ module.exports = class tradesatoshi extends Exchange {
                         'ticker',
                     ],
                 },
-                'account': {
+                'private': {
                     'get': [
                         'balance',
                         'balances',
+                        'deposits',
                         'depositaddress',
                         'deposithistory',
                         'order',
                         'orderhistory',
+                        'withdrawals',
                         'withdrawalhistory',
                         'withdraw',
                     ],
+                    'generateaddress',
+                    'submitwithdraw',
+                    'submittransfer',
                 },
                 'market': {
                     'get': [
