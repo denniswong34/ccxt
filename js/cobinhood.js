@@ -21,8 +21,8 @@ module.exports = class cobinhood extends Exchange {
                 'fetchClosedOrders': true,
                 'fetchOrder': true,
                 'fetchOrderBook': true,
-                'fetchBalance': true,
-                'fetchDepositAddress': true,
+                'fetchBalance': false,
+                'fetchDepositAddress': false,
             },
             'timeframes': {
                 // the first two don't seem to work at all
@@ -505,7 +505,7 @@ module.exports = class cobinhood extends Exchange {
             this.checkRequiredCredentials ();
             headers['device_id'] = this.apiKey;
             headers['nonce'] = this.nonce ();
-            headers['Authorization'] = this.jwt (query, this.secret);
+            headers['authorization'] = this.jwt (query, this.secret);
         }
         if (method === 'GET') {
             query = this.urlencode (query);
