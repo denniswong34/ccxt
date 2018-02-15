@@ -21,6 +21,7 @@ module.exports = class bittrex extends Exchange {
                 'CORS': true,
                 'createMarketOrder': false,
                 'fetchDepositAddress': true,
+                'fetchBalance': true,
                 'fetchClosedOrders': 'emulated',
                 'fetchCurrencies': true,
                 'fetchMyTrades': false,
