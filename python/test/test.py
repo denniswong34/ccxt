@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import json
 import os
 import sys
-import json
-import time
+import time  # noqa: F401
 from os import _exit
 from traceback import format_tb
 

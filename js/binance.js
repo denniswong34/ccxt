@@ -452,20 +452,18 @@ module.exports = class binance extends Exchange {
 
     parseTicker (ticker, market = undefined) {
         let timestamp = this.safeInteger (ticker, 'closeTime');
-        if (typeof timestamp === 'undefined')
-            timestamp = this.milliseconds ();
+        let iso8601 = (typeof timestamp === 'undefined') ? undefined : this.iso8601 (timestamp);
         let symbol = ticker['symbol'];
-        if (!market) {
-            if (symbol in this.markets_by_id) {
+        if (typeof market === 'undefined') {
+            if (symbol in this.markets_by_id)
                 market = this.markets_by_id[symbol];
-            }
         }
-        if (market)
+        if (typeof market !== 'undefined')
             symbol = market['symbol'];
         return {
             'symbol': symbol,
             'timestamp': timestamp,
-            'datetime': this.iso8601 (timestamp),
+            'datetime': iso8601,
             'high': this.safeFloat (ticker, 'highPrice'),
             'low': this.safeFloat (ticker, 'lowPrice'),
             'bid': this.safeFloat (ticker, 'bidPrice'),
@@ -537,14 +535,14 @@ module.exports = class binance extends Exchange {
         ];
     }
 
-    async fetchOHLCV (symbol, timeframe = '1m', since = undefined, limit = undefined, params = {}) {
+    async fetchOHLCV (symbol, timeframe = '1m', since = undefined, limit = 500, params = {}) {
         await this.loadMarkets ();
         let market = this.market (symbol);
         let request = {
             'symbol': market['id'],
             'interval': this.timeframes[timeframe],
+            'limit': limit, // default == max == 500
         };
-        request['limit'] = (limit) ? limit : 500; // default == max == 500
         if (typeof since !== 'undefined')
             request['startTime'] = since;
         let response = await this.publicGetKlines (this.extend (request, params));
@@ -613,15 +611,13 @@ module.exports = class binance extends Exchange {
     }
 
     parseOrderStatus (status) {
-        if (status === 'NEW')
-            return 'open';
-        if (status === 'PARTIALLY_FILLED')
-            return 'open';
-        if (status === 'FILLED')
-            return 'closed';
-        if (status === 'CANCELED')
-            return 'canceled';
-        return status.toLowerCase ();
+        let statuses = {
+            'NEW': 'open',
+            'PARTIALLY_FILLED': 'open',
+            'FILLED': 'closed',
+            'CANCELED': 'canceled',
+        };
+        return (status in statuses) ? statuses[status] : status.toLowerCase ();
     }
 
     parseOrder (order, market = undefined) {
@@ -775,6 +771,7 @@ module.exports = class binance extends Exchange {
     }
 
     async fetchDepositAddress (code, params = {}) {
+        await this.loadMarkets ();
         let currency = this.currency (code);
         let response = await this.wapiGetDepositAddress (this.extend ({
             'asset': currency['id'],

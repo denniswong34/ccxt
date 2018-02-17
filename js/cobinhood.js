@@ -504,8 +504,9 @@ module.exports = class cobinhood extends Exchange {
         if (api === 'private') {
             this.checkRequiredCredentials ();
             headers['device_id'] = this.apiKey;
-            headers['nonce'] = this.nonce ();
-            headers['authorization'] = this.jwt (query, this.secret);
+            headers['Authorization'] = this.jwt (query, this.secret);
+            // convert it to string after computing JWT
+            headers['nonce'] = headers['nonce'].toString ();
         }
         if (method === 'GET') {
             query = this.urlencode (query);

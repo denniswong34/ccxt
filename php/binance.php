@@ -451,20 +451,18 @@ class binance extends Exchange {
 
     public function parse_ticker ($ticker, $market = null) {
         $timestamp = $this->safe_integer($ticker, 'closeTime');
-        if ($timestamp === null)
-            $timestamp = $this->milliseconds ();
+        $iso8601 = ($timestamp === null) ? null : $this->iso8601 ($timestamp);
         $symbol = $ticker['symbol'];
-        if (!$market) {
-            if (is_array ($this->markets_by_id) && array_key_exists ($symbol, $this->markets_by_id)) {
+        if ($market === null) {
+            if (is_array ($this->markets_by_id) && array_key_exists ($symbol, $this->markets_by_id))
                 $market = $this->markets_by_id[$symbol];
-            }
         }
-        if ($market)
+        if ($market !== null)
             $symbol = $market['symbol'];
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
-            'datetime' => $this->iso8601 ($timestamp),
+            'datetime' => $iso8601,
             'high' => $this->safe_float($ticker, 'highPrice'),
             'low' => $this->safe_float($ticker, 'lowPrice'),
             'bid' => $this->safe_float($ticker, 'bidPrice'),
@@ -536,14 +534,14 @@ class binance extends Exchange {
         ];
     }
 
-    public function fetch_ohlcv ($symbol, $timeframe = '1m', $since = null, $limit = null, $params = array ()) {
+    public function fetch_ohlcv ($symbol, $timeframe = '1m', $since = null, $limit = 500, $params = array ()) {
         $this->load_markets();
         $market = $this->market ($symbol);
         $request = array (
             'symbol' => $market['id'],
             'interval' => $this->timeframes[$timeframe],
+            'limit' => $limit, // default == max == 500
         );
-        $request['limit'] = ($limit) ? $limit : 500; // default == max == 500
         if ($since !== null)
             $request['startTime'] = $since;
         $response = $this->publicGetKlines (array_merge ($request, $params));
@@ -612,15 +610,13 @@ class binance extends Exchange {
     }
 
     public function parse_order_status ($status) {
-        if ($status === 'NEW')
-            return 'open';
-        if ($status === 'PARTIALLY_FILLED')
-            return 'open';
-        if ($status === 'FILLED')
-            return 'closed';
-        if ($status === 'CANCELED')
-            return 'canceled';
-        return strtolower ($status);
+        $statuses = array (
+            'NEW' => 'open',
+            'PARTIALLY_FILLED' => 'open',
+            'FILLED' => 'closed',
+            'CANCELED' => 'canceled',
+        );
+        return (is_array ($statuses) && array_key_exists ($status, $statuses)) ? $statuses[$status] : strtolower ($status);
     }
 
     public function parse_order ($order, $market = null) {
@@ -774,6 +770,7 @@ class binance extends Exchange {
     }
 
     public function fetch_deposit_address ($code, $params = array ()) {
+        $this->load_markets();
         $currency = $this->currency ($code);
         $response = $this->wapiGetDepositAddress (array_merge (array (
             'asset' => $currency['id'],

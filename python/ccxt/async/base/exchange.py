@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.1102'
+__version__ = '1.10.1137'
 
 # -----------------------------------------------------------------------------
 
@@ -15,6 +15,7 @@ import random
 import certifi
 import aiohttp
 import ssl
+import yarl
 
 # -----------------------------------------------------------------------------
 
@@ -101,7 +102,11 @@ class Exchange(BaseExchange):
         http_status_code = None
 
         try:
-            async with session_method(url, data=encoded_body, headers=headers, timeout=(self.timeout / 1000), proxy=self.aiohttp_proxy) as response:
+            async with session_method(yarl.URL(url, encoded=True),
+                                      data=encoded_body,
+                                      headers=headers,
+                                      timeout=(self.timeout / 1000),
+                                      proxy=self.aiohttp_proxy) as response:
                 http_status_code = response.status
                 text = await response.text()
                 self.last_http_response = text
@@ -113,12 +118,9 @@ class Exchange(BaseExchange):
             self.raise_error(ExchangeError, url, method, e, None)
 
         except concurrent.futures._base.TimeoutError as e:
-            raise RequestTimeout(' '.join([self.id, method, url, 'request timeout']))
+            self.raise_error(RequestTimeout, method, url, e, None)
 
-        except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            self.raise_error(ExchangeError, url, method, e, None)
-
-        except aiohttp.client_exceptions.ClientConnectorError as e:
+        except aiohttp.client_exceptions.ClientError as e:
             self.raise_error(ExchangeError, url, method, e, None)
 
         if self.verbose:
