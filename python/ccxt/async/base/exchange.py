@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.1137'
+__version__ = '1.10.1145'
 
 # -----------------------------------------------------------------------------
 
@@ -60,6 +60,9 @@ class Exchange(BaseExchange):
             'loop': self.asyncio_loop,
         }, self.tokenBucket))
 
+    def __del__(self):
+        self.asyncio_loop.run_until_complete(self.session.close())
+
     async def wait_for_token(self):
         while self.rateLimitTokens <= 1:
             # if self.verbose:
@@ -95,7 +98,9 @@ class Exchange(BaseExchange):
         url = self.proxy + url
 
         if self.verbose:
-            print(url, method, url, "\nRequest:", headers, body)
+            print("\nRequest:", method, url, headers, body)
+
+        self.logger.debug("%s %s, Request: %s %s", method, url, headers, body)
 
         encoded_body = body.encode() if body else None
         session_method = getattr(self.session, method.lower())
@@ -113,6 +118,9 @@ class Exchange(BaseExchange):
                 self.last_response_headers = response.headers
                 self.handle_errors(http_status_code, text, url, method, self.last_response_headers, text)
                 self.handle_rest_errors(None, http_status_code, text, url, method)
+                if self.verbose:
+                    print("\nResponse:", method, url, str(http_status_code), str(response.headers), self.last_http_response)
+                self.logger.debug("%s %s, Response: %s %s %s", method, url, response.status, response.headers, self.last_http_response)
 
         except socket.gaierror as e:
             self.raise_error(ExchangeError, url, method, e, None)
@@ -122,9 +130,6 @@ class Exchange(BaseExchange):
 
         except aiohttp.client_exceptions.ClientError as e:
             self.raise_error(ExchangeError, url, method, e, None)
-
-        if self.verbose:
-            print(method, url, "\nResponse:", headers, text)
 
         self.handle_errors(http_status_code, text, url, method, self.last_response_headers, text)
         return self.handle_rest_response(text, url, method, headers, body)
@@ -163,8 +168,8 @@ class Exchange(BaseExchange):
         tickers = await self.fetch_tickers(symbols, params)
         return tickers
 
-    async def update_order(self, id, symbol, *args):
+    async def edit_order(self, id, symbol, *args):
         if not self.enableRateLimit:
-            raise ExchangeError(self.id + ' updateOrder() requires enableRateLimit = true')
+            self.raise_error(ExchangeError, details='updateOrder() requires enableRateLimit = true')
         await self.cancel_order(id, symbol)
         return await self.create_order(symbol, *args)
