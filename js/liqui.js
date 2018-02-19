@@ -283,8 +283,17 @@ module.exports = class liqui extends Exchange {
             ids = this.ids.join ('-');
             // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
             if (ids.length > 2048) {
-                let numIds = this.ids.length;
-                throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
+                var chunkSize = Math.ceil(this.ids.length / (Math.ceil(ids.length / 2048));
+                var chunks = this.chunk(this.ids, chunkSize);
+                chunks = chunks.map(chunk => chunk.map(chunkRow => this.markets_by_id[chunkRow]['symbol']));
+
+                let result = {};
+                for(var chunk of chunks) {
+                    result = this.extend(result, await this.fetchTickers(chunk, params));
+                }
+                return result;
+                //let numIds = this.ids.length;
+                //throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
             }
         } else {
             ids = this.marketIds (symbols);
@@ -307,6 +316,19 @@ module.exports = class liqui extends Exchange {
             result[symbol] = this.parseTicker (ticker, market);
         }
         return result;
+    }
+
+    chunk (arr, len) {
+
+        var chunks = [],
+            i = 0,
+            n = arr.length;
+
+        while (i < n) {
+            chunks.push(arr.slice(i, i += len));
+        }
+
+        return chunks;
     }
 
     async fetchTicker (symbol, params = {}) {
