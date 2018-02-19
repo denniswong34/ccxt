@@ -513,7 +513,7 @@ module.exports = class livecoin extends Exchange {
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
         let request = {
             'currency':currency,
-            'address': address,
+            'wallet': address,
             'amount': parseFloat (amount),
         };
         let response = await this.privatePostPaymentOutCoin (this.extend (request, params));
