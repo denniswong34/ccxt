@@ -176,7 +176,7 @@ module.exports = class Exchange {
         this.fetchImplementation = defaultFetch
 
         this.timeout          = 10000 // milliseconds
-        this.verbose          = true
+        this.verbose          = false
         this.debug            = false
         this.journal          = 'debug.json'
         this.userAgent        = undefined
