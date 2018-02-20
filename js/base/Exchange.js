@@ -176,7 +176,7 @@ module.exports = class Exchange {
         this.fetchImplementation = defaultFetch
 
         this.timeout          = 10000 // milliseconds
-        this.verbose          = false
+        this.verbose          = true
         this.debug            = false
         this.journal          = 'debug.json'
         this.userAgent        = undefined
@@ -665,6 +665,7 @@ module.exports = class Exchange {
         var bidsAsksList = Object.values (bidasks || []).map (bidask => this.parseBidAsk (bidask, priceKey, amountKey));
 
         //Group by same price
+
         let tmpBidsAsksList = {};
         for(var idx in bidsAsksList) {
             if(bidsAsksList[idx][0] in tmpBidsAsksList) {
@@ -676,7 +677,7 @@ module.exports = class Exchange {
 
         bidsAsksList = [];
         for(var price in tmpBidsAsksList) {
-            bidsAsksList.push([price, tmpBidsAsksList[price]]);
+            bidsAsksList.push([parseFloat(price), parseFloat(tmpBidsAsksList[price])]);
         }
         return bidsAsksList;
     }
