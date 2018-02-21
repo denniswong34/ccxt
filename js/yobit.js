@@ -157,6 +157,9 @@ module.exports = class yobit extends liqui {
             'info': response['info'],
         };
     }
+    async fetchTickers (symbols = undefined, params = {}) {
+        return super.fetchTickers(symbols, this.extend({"chunkSize": 40}, params));
+    }
 
     async fetchDepositAddress (currency, params = {}) {
         let currencyId = this.currencyId (currency);

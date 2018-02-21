@@ -284,6 +284,11 @@ module.exports = class liqui extends Exchange {
             // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
             if (ids.length > 2048) {
                 var chunkSize = Math.ceil(this.ids.length / Math.ceil(ids.length / 2048));
+
+                if("chunkSize" in params) {
+                    chunkSize = parseFloat(params['chunkSize']);
+                }
+
                 var chunks = this.chunk(this.ids, chunkSize);
                 chunks = chunks.map(chunk => chunk.map(chunkRow => this.markets_by_id[chunkRow]['symbol']));
 
