@@ -301,8 +301,20 @@ module.exports = class liqui extends Exchange {
                 //throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
             }
         } else {
-            ids = this.marketIds (symbols);
-            ids = ids.join ('-');
+            if('chunkSize' in params && symbols.length > params['chunkSize']) {
+                let chunkSize = parseFloat(params['chunkSize']);
+                var chunks = this.chunk(symbols, chunkSize);
+                chunks = chunks.map(chunk => chunk.map(chunkRow => this.markets_by_id[chunkRow]['symbol']));
+
+                let result = {};
+                for(var chunk of chunks) {
+                    result = this.extend(result, await this.fetchTickers(chunk, params));
+                }
+                return result;
+            } else {
+                ids = this.marketIds (symbols);
+                ids = ids.join ('-');
+            }
         }
         let tickers = await this.publicGetTickerPair (this.extend ({
             'pair': ids,
