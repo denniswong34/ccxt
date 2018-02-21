@@ -304,7 +304,6 @@ module.exports = class liqui extends Exchange {
             if('chunkSize' in params && symbols.length > params['chunkSize']) {
                 let chunkSize = parseFloat(params['chunkSize']);
                 var chunks = this.chunk(symbols, chunkSize);
-                chunks = chunks.map(chunk => chunk.map(chunkRow => this.markets_by_id[chunkRow]['symbol']));
 
                 let result = {};
                 for(var chunk of chunks) {
