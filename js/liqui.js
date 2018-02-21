@@ -287,6 +287,7 @@ module.exports = class liqui extends Exchange {
 
                 if("chunkSize" in params) {
                     chunkSize = parseFloat(params['chunkSize']);
+                    params = this.omit(params,'chunkSize');
                 }
 
                 var chunks = this.chunk(this.ids, chunkSize);
@@ -303,6 +304,7 @@ module.exports = class liqui extends Exchange {
         } else {
             if('chunkSize' in params && symbols.length > params['chunkSize']) {
                 let chunkSize = parseFloat(params['chunkSize']);
+                params = this.omit(params,'chunkSize');
                 var chunks = this.chunk(symbols, chunkSize);
 
                 let result = {};
