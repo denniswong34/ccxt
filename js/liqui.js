@@ -282,7 +282,7 @@ module.exports = class liqui extends Exchange {
         if (!symbols) {
             ids = this.ids.join ('-');
             // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
-            if (ids.length > 2048) {
+            if (ids.length > 2048 || ('chunkSize' in params && this.ids.length > params['chunkSize'])) {
                 var chunkSize = Math.ceil(this.ids.length / Math.ceil(ids.length / 2048));
 
                 if("chunkSize" in params) {
