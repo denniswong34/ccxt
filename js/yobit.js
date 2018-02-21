@@ -158,7 +158,7 @@ module.exports = class yobit extends liqui {
         };
     }
     async fetchTickers (symbols = undefined, params = {}) {
-        var chunkSize = 100;
+        var chunkSize = 30;
         if('chunkSize' in params)
             chunkSize = params['chunkSize'];
         return super.fetchTickers(symbols, this.extend({'chunkSize': chunkSize}, params));
