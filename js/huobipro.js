@@ -74,6 +74,7 @@ module.exports = class huobipro extends Exchange {
                         'order/matchresults', // 查询当前成交、历史成交
                         'dw/withdraw-virtual/addresses', // 查询虚拟币提现地址
                         'dw/deposit-virtual/addresses',
+                        'dw/deposit-virtual/sharedAddressWithTag',
                     ],
                     'post': [
                         'order/orders/place', // 创建并执行一个新订单 (一步下单， 推荐使用)
@@ -259,18 +260,40 @@ module.exports = class huobipro extends Exchange {
     }
     
     async fetchDepositAddress (currency, params = {}) {
-        let response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
-            'currency': currency.toLowerCase(),
-        }, params));
-        if ('status' in response) {
-            if (response['status'] == "ok") {
-                let address = this.safeString (response, 'data');
-                return {
-                    'currency': currency,
-                    'address': address,
-                    'status': 'ok',
-                    'info': response,
-                };
+        let response = {};
+        if(currency == 'XEM' || currency == 'XRP') {
+            response =  await this.privateGetDwDepositVirtualSharedAddressWithTag (this.extend ({
+                'currency': currency.toLowerCase(),
+            }, params));
+
+            if ('status' in response) {
+                if (response['status'] == "ok") {
+                    let address = this.safeString (response['data'], 'address');
+                    let tag = this.safeString (response['data'], 'tag');
+                    return {
+                        'currency': currency,
+                        'address': address,
+                        'tag': tag,
+                        'status': 'ok',
+                        'info': response,
+                    };
+                }
+            }
+        } else {
+            response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
+                'currency': currency.toLowerCase(),
+            }, params));
+
+            if ('status' in response) {
+                if (response['status'] == "ok") {
+                    let address = this.safeString (response, 'data');
+                    return {
+                        'currency': currency,
+                        'address': address,
+                        'status': 'ok',
+                        'info': response,
+                    };
+                }
             }
         }
         throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
