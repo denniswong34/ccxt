@@ -94,6 +94,9 @@ module.exports = class cryptopia extends Exchange {
             'FUEL': 'FC2', // FuelCoin != FUEL
             'QBT': 'Cubits',
             'WRC': 'WarCoin',
+            'PEPE': 'MEME',
+            'BKCAT': 'CAT',
+            'MTLMC': 'MTLMC3',
         };
         if (currency in currencies)
             return currencies[currency];
@@ -111,6 +114,9 @@ module.exports = class cryptopia extends Exchange {
             'NetCoin': 'NET',
             'Bitgem': 'BTG',
             'FC2': 'FUEL',
+            'MEME': 'PEPE',
+            'CAT': 'BKCAT',
+            'MTLMC3': 'MTLMC',
         };
         if (currency in currencies)
             return currencies[currency];

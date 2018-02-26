@@ -606,6 +606,8 @@ module.exports = class bittrex extends Exchange {
     currencyId (currency) {
         if (currency === 'BCH')
             return 'BCC';
+        if (currency === 'USNBT')
+            return 'NBT';
         return currency;
     }
 
