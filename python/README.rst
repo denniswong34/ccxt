@@ -70,7 +70,7 @@ The ccxt library currently supports the following 99 cryptocurrency exchange mar
 +----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | bittrex              | `Bittrex <https://bittrex.com>`__                              | 1.1   | `API <https://bittrex.com/Home/Api>`__                                                            | US                                         |
 +----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
-| bitz                 | `Bit-Z <https://www.bit-z.com/>`__                             | \*    | `API <https://www.bit-z.com/api.html>`__                                                          | Hong Kong                                  |
+| bitz                 | `Bit-Z <https://www.bit-z.com>`__                              | 1     | `API <https://www.bit-z.com/api.html>`__                                                          | Hong Kong                                  |
 +----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | bl3p                 | `BL3P <https://bl3p.eu>`__                                     | 1     | `API <https://github.com/BitonicNL/bl3p-api/tree/master/docs>`__                                  | Netherlands, EU                            |
 +----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
@@ -237,7 +237,7 @@ Install
 The easiest way to install the ccxt library is to use builtin package managers:
 
 -  `ccxt in **NPM** <http://npmjs.com/package/ccxt>`__ (JavaScript / Node v7.6+)
--  `ccxt in **PyPI** <https://pypi.python.org/pypi/ccxt>`__ (Python 2 and 3)
+-  `ccxt in **PyPI** <https://pypi.python.org/pypi/ccxt>`__ (Python 2 and 3.5.3+)
 -  `ccxt in **Packagist/Composer** <https://packagist.org/packages/ccxt/ccxt>`__ (PHP 5.3+)
 
 This library is shipped as an all-in-one module implementation with minimalistic dependencies and requirements:
@@ -300,7 +300,7 @@ Python
     import ccxt
     print(ccxt.exchanges) # print a list of all available exchange classes
 
-The library supports concurrent asynchronous mode with asyncio and async/await in Python 3.5+
+The library supports concurrent asynchronous mode with asyncio and async/await in Python 3.5.3+
 
 .. code:: python
 

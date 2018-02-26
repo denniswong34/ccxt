@@ -3,7 +3,7 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { ExchangeError, InsufficientFunds, OrderNotFound, InvalidOrder, DDoSProtection, InvalidNonce } = require ('./base/errors');
+const { ExchangeError, InsufficientFunds, OrderNotFound, InvalidOrder, DDoSProtection, InvalidNonce, AuthenticationError } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -307,11 +307,12 @@ module.exports = class binance extends Exchange {
                 'adjustForTimeDifference': false, // controls the adjustment logic upon instantiation
             },
             'exceptions': {
+                '-1013': InvalidOrder, // createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
+                '-1021': InvalidNonce, // 'your time is ahead of server'
+                '-1100': InvalidOrder, // createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
                 '-2010': InsufficientFunds, // createOrder -> 'Account has insufficient balance for requested action.'
                 '-2011': OrderNotFound, // cancelOrder(1, 'BTC/USDT') -> 'UNKNOWN_ORDER'
-                '-1013': InvalidOrder, // createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
-                '-1100': InvalidOrder, // createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
-                '-1021': InvalidNonce, // 'your time is ahead of server'
+                '-2015': AuthenticationError, // "Invalid API-key, IP, or permissions for action."
             },
         });
     }
@@ -467,6 +468,7 @@ module.exports = class binance extends Exchange {
         }
         if (typeof market !== 'undefined')
             symbol = market['symbol'];
+        let last = this.safeFloat (ticker, 'lastPrice');
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -479,9 +481,9 @@ module.exports = class binance extends Exchange {
             'askVolume': this.safeFloat (ticker, 'askQty'),
             'vwap': this.safeFloat (ticker, 'weightedAvgPrice'),
             'open': this.safeFloat (ticker, 'openPrice'),
-            'close': this.safeFloat (ticker, 'prevClosePrice'),
-            'first': undefined,
-            'last': this.safeFloat (ticker, 'lastPrice'),
+            'close': last,
+            'last': last,
+            'previousClose': this.safeFloat (ticker, 'prevClosePrice'), // previous day close
             'change': this.safeFloat (ticker, 'priceChange'),
             'percentage': this.safeFloat (ticker, 'priceChangePercent'),
             'average': undefined,

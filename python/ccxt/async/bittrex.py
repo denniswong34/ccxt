@@ -249,10 +249,12 @@ class bittrex (Exchange):
         previous = self.safe_float(ticker, 'PrevDay')
         last = self.safe_float(ticker, 'Last')
         change = None
+        percentage = None
         if last is not None:
             if previous is not None:
+                change = last - previous
                 if previous > 0:
-                    change = (last - previous) / previous
+                    percentage = (change / previous) * 100
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -267,7 +269,7 @@ class bittrex (Exchange):
             'first': None,
             'last': last,
             'change': change,
-            'percentage': None,
+            'percentage': percentage,
             'average': None,
             'baseVolume': self.safe_float(ticker, 'Volume'),
             'quoteVolume': self.safe_float(ticker, 'BaseVolume'),
@@ -656,6 +658,8 @@ class bittrex (Exchange):
                 raise AuthenticationError(self.id + ' ' + self.json(response))
             if response['message'] == 'INSUFFICIENT_FUNDS':
                 raise InsufficientFunds(self.id + ' ' + self.json(response))
+            if response['message'] == 'QUANTITY_NOT_PROVIDED':
+                raise InvalidOrder(self.id + ' ' + self.json(response))
             if response['message'] == 'MIN_TRADE_REQUIREMENT_NOT_MET':
                 raise InvalidOrder(self.id + ' ' + self.json(response))
             if response['message'] == 'APIKEY_INVALID':

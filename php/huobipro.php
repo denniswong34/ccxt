@@ -22,6 +22,7 @@ class huobipro extends Exchange {
                 'CORS' => false,
                 'fetchOHCLV' => true,
                 'fetchOrders' => true,
+                'fetchOrder' => true,
                 'fetchOpenOrders' => true,
                 'withdraw' => true,
             ),
@@ -153,22 +154,41 @@ class huobipro extends Exchange {
         $symbol = null;
         if ($market)
             $symbol = $market['symbol'];
-        $last = null;
-        if (is_array ($ticker) && array_key_exists ('last', $ticker))
-            $last = $ticker['last'];
         $timestamp = $this->milliseconds ();
         if (is_array ($ticker) && array_key_exists ('ts', $ticker))
             $timestamp = $ticker['ts'];
         $bid = null;
         $ask = null;
+        $bidVolume = null;
+        $askVolume = null;
         if (is_array ($ticker) && array_key_exists ('bid', $ticker)) {
-            if ($ticker['bid'])
+            if (gettype ($ticker['bid']) === 'array' && count (array_filter (array_keys ($ticker['bid']), 'is_string')) == 0) {
                 $bid = $this->safe_float($ticker['bid'], 0);
+                $bidVolume = $this->safe_float($ticker['bid'], 1);
+            }
         }
         if (is_array ($ticker) && array_key_exists ('ask', $ticker)) {
-            if ($ticker['ask'])
+            if (gettype ($ticker['ask']) === 'array' && count (array_filter (array_keys ($ticker['ask']), 'is_string')) == 0) {
                 $ask = $this->safe_float($ticker['ask'], 0);
+                $askVolume = $this->safe_float($ticker['ask'], 1);
+            }
         }
+        $open = $this->safe_float($ticker, 'open');
+        $close = $this->safe_float($ticker, 'close');
+        $change = null;
+        $percentage = null;
+        $average = null;
+        if (($open !== null) && ($close !== null)) {
+            $change = $close - $open;
+            $average = ($open . $close) / 2;
+            if (($close !== null) && ($close > 0))
+                $percentage = ($change / $open) * 100;
+        }
+        $baseVolume = $this->safe_float($ticker, 'amount');
+        $quoteVolume = $this->safe_float($ticker, 'vol');
+        $vwap = null;
+        if ($baseVolume !== null && $quoteVolume !== null && $baseVolume > 0)
+            $vwap = $quoteVolume / $baseVolume;
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
@@ -176,17 +196,18 @@ class huobipro extends Exchange {
             'high' => $ticker['high'],
             'low' => $ticker['low'],
             'bid' => $bid,
+            'bidVolume' => $bidVolume,
             'ask' => $ask,
-            'vwap' => null,
-            'open' => $ticker['open'],
-            'close' => $ticker['close'],
-            'first' => null,
-            'last' => $last,
-            'change' => null,
-            'percentage' => null,
-            'average' => null,
-            'baseVolume' => floatval ($ticker['amount']),
-            'quoteVolume' => $ticker['vol'],
+            'askVolume' => $askVolume,
+            'vwap' => $vwap,
+            'open' => $open,
+            'close' => $close,
+            'last' => $close,
+            'change' => $change,
+            'percentage' => $percentage,
+            'average' => $average,
+            'baseVolume' => $baseVolume,
+            'quoteVolume' => $quoteVolume,
             'info' => $ticker,
         );
     }
@@ -356,6 +377,14 @@ class huobipro extends Exchange {
         ), $params));
     }
 
+    public function fetch_order ($id, $symbol = null, $params = array ()) {
+        $this->load_markets();
+        $response = $this->privateGetOrderOrdersId (array_merge (array (
+            'id' => $id,
+        ), $params));
+        return $this->parse_order($response);
+    }
+
     public function parse_order_status ($status) {
         if ($status === 'partial-filled') {
             return 'open';
@@ -401,7 +430,7 @@ class huobipro extends Exchange {
             $average = floatval ($cost / $filled);
         $result = array (
             'info' => $order,
-            'id' => $order['id'],
+            'id' => (string) $order['id'],
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
             'symbol' => $symbol,

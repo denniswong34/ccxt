@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.1145'
+__version__ = '1.10.1216'
 
 # -----------------------------------------------------------------------------
 
@@ -25,6 +25,7 @@ from ccxt.async.base.throttle import throttle
 
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import RequestTimeout
+from ccxt.base.errors import NotSupported
 
 # -----------------------------------------------------------------------------
 
@@ -61,7 +62,13 @@ class Exchange(BaseExchange):
         }, self.tokenBucket))
 
     def __del__(self):
-        self.asyncio_loop.run_until_complete(self.session.close())
+        if self.session is not None:
+            self.logger.warning(self.id + ' requires to release all resources with an explicit call to the .close() coroutine.')
+
+    async def close(self):
+        if self.session is not None:
+            await self.session.close()
+            self.session = None
 
     async def wait_for_token(self):
         while self.rateLimitTokens <= 1:
@@ -163,6 +170,13 @@ class Exchange(BaseExchange):
             'bids': self.sort_by(self.aggregate(orderbook['bids']), 0, True),
             'asks': self.sort_by(self.aggregate(orderbook['asks']), 0),
         })
+
+    async def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
+        if not self.has['fetchTrades']:
+            self.raise_error(NotSupported, details='fetch_ohlcv() not implemented yet')
+        await self.load_markets()
+        trades = await self.fetch_trades(symbol, since, limit, params)
+        return self.build_ohlcv(trades, timeframe, since, limit)
 
     async def fetch_full_tickers(self, symbols=None, params={}):
         tickers = await self.fetch_tickers(symbols, params)

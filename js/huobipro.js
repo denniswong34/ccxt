@@ -24,6 +24,7 @@ module.exports = class huobipro extends Exchange {
                 'CORS': false,
                 'fetchOHCLV': true,
                 'fetchOrders': true,
+                'fetchOrder': true,
                 'fetchOpenOrders': true,
                 'withdraw': true,
                 'fetchDepositAddress': true,
@@ -157,22 +158,41 @@ module.exports = class huobipro extends Exchange {
         let symbol = undefined;
         if (market)
             symbol = market['symbol'];
-        let last = undefined;
-        if ('last' in ticker)
-            last = ticker['last'];
         let timestamp = this.milliseconds ();
         if ('ts' in ticker)
             timestamp = ticker['ts'];
         let bid = undefined;
         let ask = undefined;
+        let bidVolume = undefined;
+        let askVolume = undefined;
         if ('bid' in ticker) {
-            if (ticker['bid'])
+            if (Array.isArray (ticker['bid'])) {
                 bid = this.safeFloat (ticker['bid'], 0);
+                bidVolume = this.safeFloat (ticker['bid'], 1);
+            }
         }
         if ('ask' in ticker) {
-            if (ticker['ask'])
+            if (Array.isArray (ticker['ask'])) {
                 ask = this.safeFloat (ticker['ask'], 0);
+                askVolume = this.safeFloat (ticker['ask'], 1);
+            }
         }
+        let open = this.safeFloat (ticker, 'open');
+        let close = this.safeFloat (ticker, 'close');
+        let change = undefined;
+        let percentage = undefined;
+        let average = undefined;
+        if ((typeof open !== 'undefined') && (typeof close !== 'undefined')) {
+            change = close - open;
+            average = (open + close) / 2;
+            if ((typeof close !== 'undefined') && (close > 0))
+                percentage = (change / open) * 100;
+        }
+        let baseVolume = this.safeFloat (ticker, 'amount');
+        let quoteVolume = this.safeFloat (ticker, 'vol');
+        let vwap = undefined;
+        if (typeof baseVolume !== 'undefined' && typeof quoteVolume !== 'undefined' && baseVolume > 0)
+            vwap = quoteVolume / baseVolume;
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -180,17 +200,18 @@ module.exports = class huobipro extends Exchange {
             'high': ticker['high'],
             'low': ticker['low'],
             'bid': bid,
+            'bidVolume': bidVolume,
             'ask': ask,
-            'vwap': undefined,
-            'open': ticker['open'],
-            'close': ticker['close'],
-            'first': undefined,
-            'last': last,
-            'change': undefined,
-            'percentage': undefined,
-            'average': undefined,
-            'baseVolume': parseFloat (ticker['amount']),
-            'quoteVolume': ticker['vol'],
+            'askVolume': askVolume,
+            'vwap': vwap,
+            'open': open,
+            'close': close,
+            'last': close,
+            'change': change,
+            'percentage': percentage,
+            'average': average,
+            'baseVolume': baseVolume,
+            'quoteVolume': quoteVolume,
             'info': ticker,
         };
     }
@@ -400,6 +421,14 @@ module.exports = class huobipro extends Exchange {
         }, params));
     }
 
+    async fetchOrder (id, symbol = undefined, params = {}) {
+        await this.loadMarkets ();
+        let response = await this.privateGetOrderOrdersId (this.extend ({
+            'id': id,
+        }, params));
+        return this.parseOrder (response);
+    }
+
     parseOrderStatus (status) {
         if (status === 'partial-filled') {
             return 'open';
@@ -445,7 +474,7 @@ module.exports = class huobipro extends Exchange {
             average = parseFloat (cost / filled);
         let result = {
             'info': order,
-            'id': order['id'],
+            'id': order['id'].toString (),
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
             'symbol': symbol,

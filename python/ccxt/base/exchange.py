@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.1145'
+__version__ = '1.10.1216'
 
 # -----------------------------------------------------------------------------
 
@@ -29,6 +29,7 @@ import base64
 import calendar
 import collections
 import datetime
+from email.utils import parsedate
 import functools
 import gzip
 import hashlib
@@ -42,7 +43,7 @@ from requests import Session
 from requests.utils import default_user_agent
 from requests.exceptions import HTTPError, Timeout, TooManyRedirects, RequestException
 # import socket
-# import ssl
+from ssl import SSLError
 # import sys
 import time
 import uuid
@@ -167,7 +168,7 @@ class Exchange(object):
         'fetchL2OrderBook': True,
         'fetchMarkets': True,
         'fetchMyTrades': False,
-        'fetchOHLCV': False,
+        'fetchOHLCV': 'emulated',
         'fetchOpenOrders': False,
         'fetchOrder': False,
         'fetchOrderBook': True,
@@ -355,6 +356,9 @@ class Exchange(object):
         except TooManyRedirects as e:
             self.raise_error(ExchangeError, url, method, e)
 
+        except SSLError as e:
+            self.raise_error(ExchangeError, url, method, e)
+
         except HTTPError as e:
             self.handle_errors(response.status_code, response.reason, url, method, self.last_response_headers, self.last_http_response)
             self.handle_rest_errors(e, response.status_code, self.last_http_response, url, method)
@@ -409,8 +413,11 @@ class Exchange(object):
     def safe_float(dictionary, key, default_value=None):
         value = default_value
         try:
-            value = float(dictionary[key]) if (key is not None) and (key in dictionary) and (dictionary[key] is not None) else default_value
-        except ValueError:
+            if isinstance(dictionary, list) and isinstance(key, int) and len(dictionary) > key:
+                value = float(dictionary[key])
+            else:
+                value = float(dictionary[key]) if (key is not None) and (key in dictionary) and (dictionary[key] is not None) else default_value
+        except ValueError as e:
             value = default_value
         return value
 
@@ -453,6 +460,9 @@ class Exchange(object):
 
     @staticmethod
     def capitalize(string):  # first character only, rest characters unchanged
+        # the native pythonic .capitalize() method lowercases all other characters
+        # which is an unwanted behaviour, therefore we use this custom implementation
+        # check it yourself: print('foobar'.capitalize(), 'fooBar'.capitalize())
         if len(string) > 1:
             return "%s%s" % (string[0].upper(), string[1:])
         return string.upper()
@@ -638,6 +648,8 @@ class Exchange(object):
 
     @staticmethod
     def iso8601(timestamp):
+        if timestamp is None:
+            return timestamp
         utc = datetime.datetime.utcfromtimestamp(int(round(timestamp / 1000)))
         return utc.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-6] + "{:<03d}".format(int(timestamp) % 1000) + 'Z'
 
@@ -652,15 +664,24 @@ class Exchange(object):
         return utc_datetime.strftime('%Y-%m-%d' + infix + '%H:%M:%S')
 
     @staticmethod
+    def parse_date(timestamp):
+        if 'GMT' in timestamp:
+            string = ''.join([str(value) for value in parsedate(timestamp)[:6]]) + '.000Z'
+            dt = datetime.datetime.strptime(string, "%Y%m%d%H%M%S.%fZ")
+            return calendar.timegm(dt.utctimetuple()) * 1000
+        else:
+            return Exchange.parse8601(timestamp)
+
+    @staticmethod
     def parse8601(timestamp):
         yyyy = '([0-9]{4})-?'
         mm = '([0-9]{2})-?'
-        dd = '([0-9]{2})(?:T|[\s])?'
+        dd = '([0-9]{2})(?:T|[\\s])?'
         h = '([0-9]{2}):?'
         m = '([0-9]{2}):?'
         s = '([0-9]{2})'
-        ms = '(\.[0-9]{1,3})?'
-        tz = '(?:(\+|\-)([0-9]{2})\:?([0-9]{2})|Z)?'
+        ms = '(\\.[0-9]{1,3})?'
+        tz = '(?:(\\+|\\-)([0-9]{2})\\:?([0-9]{2})|Z)?'
         regex = r'' + yyyy + mm + dd + h + m + s + ms + tz
         match = re.search(regex, timestamp, re.IGNORECASE)
         yyyy, mm, dd, h, m, s, ms, sign, hours, minutes = match.groups()
@@ -879,8 +900,16 @@ class Exchange(object):
         except AttributeError:
             pass
 
-        return {'trading': trading,
-                'funding': funding}
+        return {
+            'trading': trading,
+            'funding': funding,
+        }
+
+    def create_order(self, symbol, type, side, amount, price=None, params={}):
+        self.raise_error(NotSupported, details='create_order() not implemented yet')
+
+    def cancel_order(self, id, symbol=None, params={}):
+        self.raise_error(NotSupported, details='cancel_order() not implemented yet')
 
     def fetch_bids_asks(self, symbols=None, params={}):
         self.raise_error(NotSupported, details='API does not allow to fetch all prices at once with a single call to fetch_bid_asks() for now')
@@ -891,6 +920,12 @@ class Exchange(object):
     def fetch_order_status(self, id, market=None):
         order = self.fetch_order(id)
         return order['status']
+
+    def purge_cached_orders(self, before):
+        orders = self.to_array(self.orders)
+        orders = [order for order in orders if (order['status'] == 'open') or (order['timestamp'] >= before)]
+        self.orders = self.index_by(orders, 'id')
+        return self.orders
 
     def fetch_order(self, id, symbol=None, params={}):
         self.raise_error(NotSupported, details='fetch_order() is not implemented yet')
@@ -984,7 +1019,55 @@ class Exchange(object):
         return self.fetch_partial_balance('total', params)
 
     def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
-        self.raise_error(NotSupported, details='API does not allow to fetch OHLCV series for now')
+        if not self.has['fetchTrades']:
+            self.raise_error(NotSupported, details='fetch_ohlcv() not implemented yet')
+        self.load_markets()
+        trades = self.fetch_trades(symbol, since, limit, params)
+        return self.build_ohlcv(trades, timeframe, since, limit)
+
+    def build_ohlcv(self, trades, timeframe='1m', since=None, limit=None):
+        ms = self.parse_timeframe(timeframe) * 1000
+        print(type(ms), ms)
+        ohlcvs = []
+        (high, low, close, volume) = (2, 3, 4, 5)
+        num_trades = len(trades)
+        oldest = (num_trades - 1) if limit is None else min(num_trades - 1, limit)
+        for i in range(oldest, 0, -1):
+            trade = trades[i]
+            if (since is not None) and (trade['timestamp'] < since):
+                continue
+            opening_time = int(math.floor(trade['timestamp'] / ms) * ms)  # Shift the edge of the m/h/d (but not M)
+            j = len(ohlcvs)
+            if (j == 0) or opening_time >= ohlcvs[j - 1][0] + ms:
+                # moved to a new timeframe -> create a new candle from opening trade
+                ohlcvs.append([
+                    opening_time,
+                    trade['price'],
+                    trade['price'],
+                    trade['price'],
+                    trade['price'],
+                    trade['amount'],
+                ])
+            else:
+                # still processing the same timeframe -> update opening trade
+                ohlcvs[j - 1][high] = max(ohlcvs[j - 1][high], trade['price'])
+                ohlcvs[j - 1][low] = min(ohlcvs[j - 1][low], trade['price'])
+                ohlcvs[j - 1][close] = trade['price']
+                ohlcvs[j - 1][volume] += trade['amount']
+        return ohlcvs
+
+    def parse_timeframe(self, timeframe):
+        amount = int(timeframe[0:-1])
+        unit = timeframe[-1]
+        if 'M' in unit:
+            scale = 60 * 60 * 24 * 30
+        elif 'd' in unit:
+            scale = 60 * 60 * 24
+        elif 'h' in unit:
+            scale = 60 * 60
+        else:
+            scale = 60  # 1m by default
+        return amount * scale
 
     def parse_trades(self, trades, market=None, since=None, limit=None):
         array = self.to_array(trades)
@@ -1026,7 +1109,7 @@ class Exchange(object):
         self.raise_error(ExchangeError, details='No market symbol ' + str(symbol))
 
     def market_ids(self, symbols):
-        return [self.marketId(symbol) for symbol in symbols]
+        return [self.market_id(symbol) for symbol in symbols]
 
     def market_id(self, symbol):
         market = self.market(symbol)
@@ -1077,4 +1160,4 @@ class Exchange(object):
         return self.create_order(symbol, 'market', 'sell', amount, None, params)
 
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
-        raise NotImplemented(self.id + ' sign() pure method must be redefined in derived classes')
+        raise NotSupported(self.id + ' sign() pure method must be redefined in derived classes')

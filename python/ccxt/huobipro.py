@@ -26,6 +26,7 @@ class huobipro (Exchange):
                 'CORS': False,
                 'fetchOHCLV': True,
                 'fetchOrders': True,
+                'fetchOrder': True,
                 'fetchOpenOrders': True,
                 'withdraw': True,
             },
@@ -154,20 +155,36 @@ class huobipro (Exchange):
         symbol = None
         if market:
             symbol = market['symbol']
-        last = None
-        if 'last' in ticker:
-            last = ticker['last']
         timestamp = self.milliseconds()
         if 'ts' in ticker:
             timestamp = ticker['ts']
         bid = None
         ask = None
+        bidVolume = None
+        askVolume = None
         if 'bid' in ticker:
-            if ticker['bid']:
+            if isinstance(ticker['bid'], list):
                 bid = self.safe_float(ticker['bid'], 0)
+                bidVolume = self.safe_float(ticker['bid'], 1)
         if 'ask' in ticker:
-            if ticker['ask']:
+            if isinstance(ticker['ask'], list):
                 ask = self.safe_float(ticker['ask'], 0)
+                askVolume = self.safe_float(ticker['ask'], 1)
+        open = self.safe_float(ticker, 'open')
+        close = self.safe_float(ticker, 'close')
+        change = None
+        percentage = None
+        average = None
+        if (open is not None) and(close is not None):
+            change = close - open
+            average = (open + close) / 2
+            if (close is not None) and(close > 0):
+                percentage = (change / open) * 100
+        baseVolume = self.safe_float(ticker, 'amount')
+        quoteVolume = self.safe_float(ticker, 'vol')
+        vwap = None
+        if baseVolume is not None and quoteVolume is not None and baseVolume > 0:
+            vwap = quoteVolume / baseVolume
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -175,17 +192,18 @@ class huobipro (Exchange):
             'high': ticker['high'],
             'low': ticker['low'],
             'bid': bid,
+            'bidVolume': bidVolume,
             'ask': ask,
-            'vwap': None,
-            'open': ticker['open'],
-            'close': ticker['close'],
-            'first': None,
-            'last': last,
-            'change': None,
-            'percentage': None,
-            'average': None,
-            'baseVolume': float(ticker['amount']),
-            'quoteVolume': ticker['vol'],
+            'askVolume': askVolume,
+            'vwap': vwap,
+            'open': open,
+            'close': close,
+            'last': close,
+            'change': change,
+            'percentage': percentage,
+            'average': average,
+            'baseVolume': baseVolume,
+            'quoteVolume': quoteVolume,
             'info': ticker,
         }
 
@@ -333,6 +351,13 @@ class huobipro (Exchange):
             'status': open,
         }, params))
 
+    def fetch_order(self, id, symbol=None, params={}):
+        self.load_markets()
+        response = self.privateGetOrderOrdersId(self.extend({
+            'id': id,
+        }, params))
+        return self.parse_order(response)
+
     def parse_order_status(self, status):
         if status == 'partial-filled':
             return 'open'
@@ -372,7 +397,7 @@ class huobipro (Exchange):
             average = float(cost / filled)
         result = {
             'info': order,
-            'id': order['id'],
+            'id': str(order['id']),
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
             'symbol': symbol,

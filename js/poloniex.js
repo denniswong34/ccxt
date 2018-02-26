@@ -3,7 +3,7 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { ExchangeNotAvailable, ExchangeError, InsufficientFunds, OrderNotFound, OrderNotCached, InvalidOrder, CancelPending } = require ('./base/errors');
+const { ExchangeError, AuthenticationError, InsufficientFunds, OrderNotFound, OrderNotCached, InvalidOrder, CancelPending, InvalidNonce } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -260,6 +260,16 @@ module.exports = class poloniex extends Exchange {
         let symbol = undefined;
         if (market)
             symbol = market['symbol'];
+        let open = undefined;
+        let change = undefined;
+        let average = undefined;
+        let last = parseFloat (ticker['last']);
+        let relativeChange = parseFloat (ticker['percentChange']);
+        if (relativeChange !== -1) {
+            open = last / (1 + relativeChange);
+            change = last - open;
+            average = (last + open) / 2;
+        }
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -269,13 +279,13 @@ module.exports = class poloniex extends Exchange {
             'bid': parseFloat (ticker['highestBid']),
             'ask': parseFloat (ticker['lowestAsk']),
             'vwap': undefined,
-            'open': undefined,
-            'close': undefined,
-            'first': undefined,
-            'last': parseFloat (ticker['last']),
-            'change': parseFloat (ticker['percentChange']),
-            'percentage': undefined,
-            'average': undefined,
+            'open': open,
+            'close': last,
+            'last': last,
+            'previousClose': undefined,
+            'change': change,
+            'percentage': relativeChange * 100,
+            'average': average,
             'baseVolume': parseFloat (ticker['quoteVolume']),
             'quoteVolume': parseFloat (ticker['baseVolume']),
             'info': ticker,
@@ -320,7 +330,7 @@ module.exports = class poloniex extends Exchange {
                 'name': currency['name'],
                 'active': active,
                 'status': status,
-                'fee': currency['txFee'], // todo: redesign
+                'fee': this.safeFloat (currency, 'txFee'), // todo: redesign
                 'precision': precision,
                 'limits': {
                     'amount': {
@@ -793,24 +803,30 @@ module.exports = class poloniex extends Exchange {
     }
 
     handleErrors (code, reason, url, method, headers, body) {
-        if (body[0] === '{') {
-            const response = JSON.parse (body);
-            if ('error' in response) {
-                const error = response['error'];
-                const feedback = this.id + ' ' + this.json (response);
-                if (error === 'Invalid order number, or you are not the person who placed the order.') {
-                    throw new OrderNotFound (feedback);
-                } else if (error.indexOf ('Total must be at least') >= 0) {
-                    throw new InvalidOrder (feedback);
-                } else if (error.indexOf ('Not enough') >= 0) {
-                    throw new InsufficientFunds (feedback);
-                } else if (error.indexOf ('Nonce must be greater') >= 0) {
-                    throw new ExchangeNotAvailable (feedback);
-                } else if (error.indexOf ('You have already called cancelOrder or moveOrder on this order.') >= 0) {
-                    throw new CancelPending (feedback);
-                } else {
-                    throw new ExchangeError (this.id + ': unknown error: ' + this.json (response));
-                }
+        let response = undefined;
+        try {
+            response = JSON.parse (body);
+        } catch (e) {
+            // syntax error, resort to default error handler
+            return;
+        }
+        if ('error' in response) {
+            const error = response['error'];
+            const feedback = this.id + ' ' + this.json (response);
+            if (error === 'Invalid order number, or you are not the person who placed the order.') {
+                throw new OrderNotFound (feedback);
+            } else if (error === 'Invalid API key/secret pair.') {
+                throw new AuthenticationError (feedback);
+            } else if (error.indexOf ('Total must be at least') >= 0) {
+                throw new InvalidOrder (feedback);
+            } else if (error.indexOf ('Not enough') >= 0) {
+                throw new InsufficientFunds (feedback);
+            } else if (error.indexOf ('Nonce must be greater') >= 0) {
+                throw new InvalidNonce (feedback);
+            } else if (error.indexOf ('You have already called cancelOrder or moveOrder on this order.') >= 0) {
+                throw new CancelPending (feedback);
+            } else {
+                throw new ExchangeError (this.id + ': unknown error: ' + this.json (response));
             }
         }
     }
