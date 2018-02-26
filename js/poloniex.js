@@ -18,6 +18,7 @@ module.exports = class poloniex extends Exchange {
                 'createDepositAddress': true,
                 'fetchDepositAddress': true,
                 'CORS': false,
+                'editOrder': true,
                 'createMarketOrder': false,
                 'fetchOHLCV': true,
                 'fetchMyTrades': true,
@@ -27,6 +28,7 @@ module.exports = class poloniex extends Exchange {
                 'fetchClosedOrders': 'emulated',
                 'fetchTickers': true,
                 'fetchCurrencies': true,
+                'fetchDepositAddress': true,
                 'withdraw': true,
             },
             'timeframes': {
@@ -164,7 +166,7 @@ module.exports = class poloniex extends Exchange {
             ohlcv['high'],
             ohlcv['low'],
             ohlcv['close'],
-            ohlcv['volume'],
+            ohlcv['quoteVolume'],
         ];
     }
 

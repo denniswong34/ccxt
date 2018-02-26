@@ -58,8 +58,12 @@ module.exports = class yobit extends liqui {
                     'maker': 0.002,
                     'taker': 0.002,
                 },
-                'funding': 0.0,
-                'withdraw': 0.0005,
+                'funding': {
+                    'withdraw': {},
+                },
+            },
+            'options': {
+                'fetchOrdersRequiresSymbol': true,
             },
         });
     }
@@ -152,6 +156,12 @@ module.exports = class yobit extends liqui {
             'status': 'ok',
             'info': response['info'],
         };
+    }
+    async fetchTickers (symbols = undefined, params = {}) {
+        var chunkSize = 61;
+        if('chunkSize' in params)
+            chunkSize = params['chunkSize'];
+        return super.fetchTickers(symbols, this.extend({'chunkSize': chunkSize}, params));
     }
 
     async fetchDepositAddress (currency, params = {}) {

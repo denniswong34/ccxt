@@ -130,7 +130,8 @@ module.exports = class okcoinusd extends Exchange {
                 },
             },
             'exceptions': {
-                '1009': OrderNotFound, // for spot markets
+                '1009': OrderNotFound, // for spot markets, cancelling closed order
+                '1051': OrderNotFound, // for spot markets, cancelling "just closed" order
                 '20015': OrderNotFound, // for future markets
                 '1013': InvalidOrder, // no contract type (PR-1101)
                 '1027': InvalidOrder, // createLimitBuyOrder(symbol, 0, 0): Incorrect parameter may exceeded limits
@@ -564,29 +565,6 @@ module.exports = class okcoinusd extends Exchange {
         return this.parseOrders (response[ordersField], market, since, limit);
     }
     
-    async fetchDepositAddress (currency, params = {}) {
-        let response = await this.privatePostAccountRecords (this.extend ({
-            'symbol': currency.toLowerCase(),
-            'type': 0,
-            'current_page': 1,
-            'page_length': 1,
-        }, params));
-        
-        console.log(response);
-        if ('status' in response.records[0]) {
-            if (response.records[0]['status'] == "1") {
-                let address = this.safeString (response.records[0], 'addr');
-                return {
-                    'currency': currency,
-                    'address': address,
-                    'status': 'ok',
-                    'info': response,
-                };
-            }
-        }
-        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
-    }
-
     async fetchOpenOrders (symbol = undefined, since = undefined, limit = undefined, params = {}) {
         let open = 0; // 0 for unfilled orders, 1 for filled orders
         return await this.fetchOrders (symbol, undefined, undefined, this.extend ({

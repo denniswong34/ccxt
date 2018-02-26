@@ -19,13 +19,14 @@ class kucoin extends Exchange {
                 'CORS' => false,
                 'cancelOrders' => true,
                 'createMarketOrder' => false,
+                'fetchDepositAddress' => true,
                 'fetchTickers' => true,
                 'fetchOHLCV' => true, // see the method implementation below
                 'fetchOrder' => true,
                 'fetchOrders' => false,
                 'fetchClosedOrders' => true,
                 'fetchOpenOrders' => true,
-                'fetchMyTrades' => false,
+                'fetchMyTrades' => true,
                 'fetchCurrencies' => true,
                 'withdraw' => true,
             ),
@@ -105,8 +106,8 @@ class kucoin extends Exchange {
             ),
             'fees' => array (
                 'trading' => array (
-                    'maker' => 0.0010,
-                    'taker' => 0.0010,
+                    'maker' => 0.001,
+                    'taker' => 0.001,
                 ),
                 'funding' => array (
                     'tierBased' => false,
@@ -191,6 +192,8 @@ class kucoin extends Exchange {
                 'base' => $base,
                 'quote' => $quote,
                 'active' => $active,
+                'taker' => $this->safe_float($market, 'feeRate'),
+                'maker' => $this->safe_float($market, 'feeRate'),
                 'info' => $market,
                 'lot' => pow (10, -$precision['amount']),
                 'precision' => $precision,
@@ -207,6 +210,24 @@ class kucoin extends Exchange {
             );
         }
         return $result;
+    }
+
+    public function fetch_deposit_address ($code, $params = array ()) {
+        $this->load_markets();
+        $currency = $this->currency ($code);
+        $response = $this->privateGetAccountCoinWalletAddress (array_merge (array (
+            'coin' => $currency['id'],
+        ), $params));
+        $data = $response['data'];
+        $address = $this->safe_string($data, 'address');
+        $tag = $this->safe_string($data, 'userOid');
+        return array (
+            'currency' => $code,
+            'address' => $address,
+            'tag' => $tag,
+            'status' => 'ok',
+            'info' => $response,
+        );
     }
 
     public function fetch_currencies ($params = array ()) {
@@ -345,16 +366,23 @@ class kucoin extends Exchange {
             $side = $order['type'];
         if ($side !== null)
             $side = strtolower ($side);
-        $fee = null;
-        if (is_array ($order) && array_key_exists ('feeTotal', $order)) {
-            $fee = array (
-                'cost' => $this->safe_float($order, 'feeTotal'),
-                'rate' => null,
-                'currency' => null,
-            );
-            if ($market)
-                $fee['currency'] = $market['base'];
+        $feeCurrency = null;
+        if ($market) {
+            $feeCurrency = ($side === 'sell') ? $market['quote'] : $market['base'];
+        } else {
+            $feeCurrencyField = ($side === 'sell') ? 'coinTypePair' : 'coinType';
+            $feeCurrency = $this->safe_string($order, $feeCurrencyField);
+            if ($feeCurrency !== null) {
+                if (is_array ($this->currencies_by_id) && array_key_exists ($feeCurrency, $this->currencies_by_id))
+                    $feeCurrency = $this->currencies_by_id[$feeCurrency]['code'];
+            }
         }
+        $feeCost = $this->safe_float($order, 'fee');
+        $fee = array (
+            'cost' => $this->safe_float($order, 'feeTotal', $feeCost),
+            'rate' => $this->safe_float($order, 'feeRate'),
+            'currency' => $feeCurrency,
+        );
         // todo => parse $order trades and fill fees from 'datas'
         // do not confuse trades with orders
         $orderId = $this->safe_string($order, 'orderOid');
@@ -550,23 +578,63 @@ class kucoin extends Exchange {
     }
 
     public function parse_trade ($trade, $market = null) {
-        $timestamp = $trade[0];
+        $id = null;
+        $order = null;
+        $info = $trade;
+        $timestamp = null;
+        $type = null;
         $side = null;
-        if ($trade[1] === 'BUY') {
-            $side = 'buy';
-        } else if ($trade[1] === 'SELL') {
-            $side = 'sell';
+        $price = null;
+        $cost = null;
+        $amount = null;
+        $fee = null;
+        if (gettype ($trade) === 'array' && count (array_filter (array_keys ($trade), 'is_string')) == 0) {
+            $timestamp = $trade[0];
+            $type = 'limit';
+            if ($trade[1] === 'BUY') {
+                $side = 'buy';
+            } else if ($trade[1] === 'SELL') {
+                $side = 'sell';
+            }
+            $price = $trade[2];
+            $amount = $trade[3];
+        } else {
+            $timestamp = $this->safe_value($trade, 'createdAt');
+            $order = $this->safe_string($trade, 'orderOid');
+            if ($order === null)
+                $order = $this->safe_string($trade, 'oid');
+            $side = strtolower ($trade['dealDirection']);
+            $price = $this->safe_float($trade, 'dealPrice');
+            $amount = $this->safe_float($trade, 'amount');
+            $cost = $this->safe_float($trade, 'dealValue');
+            $feeCurrency = null;
+            if (is_array ($trade) && array_key_exists ('coinType', $trade)) {
+                $feeCurrency = $this->safe_string($trade, 'coinType');
+                if ($feeCurrency !== null)
+                    if (is_array ($this->currencies_by_id) && array_key_exists ($feeCurrency, $this->currencies_by_id))
+                        $feeCurrency = $this->currencies_by_id[$feeCurrency]['code'];
+            }
+            $fee = array (
+                'cost' => $this->safe_float($trade, 'fee'),
+                'currency' => $feeCurrency,
+            );
         }
+        $symbol = null;
+        if ($market !== null)
+            $symbol = $market['symbol'];
         return array (
-            'id' => null,
-            'info' => $trade,
+            'id' => $id,
+            'order' => $order,
+            'info' => $info,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
-            'symbol' => $market['symbol'],
-            'type' => 'limit',
+            'symbol' => $symbol,
+            'type' => $type,
             'side' => $side,
-            'price' => $trade[2],
-            'amount' => $trade[3],
+            'price' => $price,
+            'cost' => $cost,
+            'amount' => $amount,
+            'fee' => $fee,
         );
     }
 
@@ -577,6 +645,20 @@ class kucoin extends Exchange {
             'symbol' => $market['id'],
         ), $params));
         return $this->parse_trades($response['data'], $market, $since, $limit);
+    }
+
+    public function fetch_my_trades ($symbol = null, $since = null, $limit = null, $params = array ()) {
+        if (!$symbol)
+            throw new ExchangeError ($this->id . ' fetchMyTrades requires a $symbol argument');
+        $this->load_markets();
+        $market = $this->market ($symbol);
+        $request = array (
+            'symbol' => $market['id'],
+        );
+        if ($limit)
+            $request['limit'] = $limit;
+        $response = $this->privateGetDealOrders (array_merge ($request, $params));
+        return $this->parse_trades($response['data']['datas'], $market, $since, $limit);
     }
 
     public function parse_trading_view_ohlcvs ($ohlcvs, $market = null, $timeframe = '1m', $since = null, $limit = null) {

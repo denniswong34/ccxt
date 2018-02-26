@@ -66,8 +66,8 @@ module.exports = class liqui extends Exchange {
                 'funding': {
                     'tierBased': false,
                     'percentage': false,
-                    'withdraw': undefined,
-                    'deposit': undefined,
+                    'withdraw': {},
+                    'deposit': {},
                 },
             },
             'exceptions': {
@@ -240,8 +240,8 @@ module.exports = class liqui extends Exchange {
         for (let i = 0; i < ids.length; i++) {
             let id = ids[i];
             let symbol = id;
-            if (id in this.marketsById) {
-                let market = this.marketsById[id];
+            if (id in this.markets_by_id) {
+                let market = this.markets_by_id[id];
                 symbol = market['symbol'];
             }
             result[symbol] = this.parseOrderBook (response[id]);
@@ -282,13 +282,40 @@ module.exports = class liqui extends Exchange {
         if (!symbols) {
             ids = this.ids.join ('-');
             // max URL length is 2083 symbols, including http schema, hostname, tld, etc...
-            if (ids.length > 2048) {
-                let numIds = this.ids.length;
-                throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
+            if (ids.length > 2048 || ('chunkSize' in params && this.ids.length > params['chunkSize'])) {
+                var chunkSize = Math.ceil(this.ids.length / Math.ceil(ids.length / 2048));
+
+                if("chunkSize" in params) {
+                    chunkSize = parseFloat(params['chunkSize']);
+                    params = this.omit(params,'chunkSize');
+                }
+
+                var chunks = this.chunk(this.ids, chunkSize);
+                chunks = chunks.map(chunk => chunk.map(chunkRow => this.markets_by_id[chunkRow]['symbol']));
+
+                let result = {};
+                for(var chunk of chunks) {
+                    result = this.extend(result, await this.fetchTickers(chunk, params));
+                }
+                return result;
+                //let numIds = this.ids.length;
+                //throw new ExchangeError (this.id + ' has ' + numIds.toString () + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
             }
         } else {
-            ids = this.marketIds (symbols);
-            ids = ids.join ('-');
+            if('chunkSize' in params && symbols.length > params['chunkSize']) {
+                let chunkSize = parseFloat(params['chunkSize']);
+                params = this.omit(params,'chunkSize');
+                var chunks = this.chunk(symbols, chunkSize);
+
+                let result = {};
+                for(var chunk of chunks) {
+                    result = this.extend(result, await this.fetchTickers(chunk, params));
+                }
+                return result;
+            } else {
+                ids = this.marketIds (symbols);
+                ids = ids.join ('-');
+            }
         }
         let tickers = await this.publicGetTickerPair (this.extend ({
             'pair': ids,
@@ -307,6 +334,19 @@ module.exports = class liqui extends Exchange {
             result[symbol] = this.parseTicker (ticker, market);
         }
         return result;
+    }
+
+    chunk (arr, len) {
+
+        var chunks = [],
+            i = 0,
+            n = arr.length;
+
+        while (i < n) {
+            chunks.push(arr.slice(i, i += len));
+        }
+
+        return chunks;
     }
 
     async fetchTicker (symbol, params = {}) {
@@ -550,8 +590,10 @@ module.exports = class liqui extends Exchange {
     }
 
     async fetchOrders (symbol = undefined, since = undefined, limit = undefined, params = {}) {
-        // if (!symbol)
-        //     throw new ExchangeError (this.id + ' fetchOrders requires a symbol');
+        if ('fetchOrdersRequiresSymbol' in this.options)
+            if (this.options['fetchOrdersRequiresSymbol'])
+                if (typeof symbol === 'undefined')
+                    throw new ExchangeError (this.id + ' fetchOrders requires a symbol argument');
         await this.loadMarkets ();
         let request = {};
         let market = undefined;

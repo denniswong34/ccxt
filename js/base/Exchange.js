@@ -73,6 +73,7 @@ module.exports = class Exchange {
                 'createDepositAddress': false,
                 'createOrder': true,
                 'deposit': false,
+                'editOrder': 'emulated',
                 'fetchBalance': true,
                 'fetchBidsAsks': false,
                 'fetchClosedOrders': false,
@@ -121,8 +122,8 @@ module.exports = class Exchange {
                 'funding': {
                     'tierBased': undefined,
                     'percentage': undefined,
-                    'withdraw': undefined,
-                    'deposit': undefined,
+                    'withdraw': {},
+                    'deposit': {},
                 },
             },
             'parseJsonResponse': true, // whether a reply is required to be in JSON or not
@@ -521,7 +522,7 @@ module.exports = class Exchange {
 
     async loadMarkets (reload = false) {
         if (!reload && this.markets) {
-            if (!this.marketsById) {
+            if (!this.markets_by_id) {
                 return this.setMarkets (this.markets)
             }
             return this.markets
@@ -664,6 +665,7 @@ module.exports = class Exchange {
         var bidsAsksList = Object.values (bidasks || []).map (bidask => this.parseBidAsk (bidask, priceKey, amountKey));
 
         //Group by same price
+
         let tmpBidsAsksList = {};
         for(var idx in bidsAsksList) {
             if(bidsAsksList[idx][0] in tmpBidsAsksList) {
@@ -675,7 +677,7 @@ module.exports = class Exchange {
 
         bidsAsksList = [];
         for(var price in tmpBidsAsksList) {
-            bidsAsksList.push([price, tmpBidsAsksList[price]]);
+            bidsAsksList.push([parseFloat(price), parseFloat(tmpBidsAsksList[price])]);
         }
         return bidsAsksList;
     }

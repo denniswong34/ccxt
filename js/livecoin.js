@@ -23,6 +23,7 @@ module.exports = class livecoin extends Exchange {
                 'fetchOrders': true,
                 'fetchOpenOrders': true,
                 'fetchClosedOrders': true,
+                'withdraw': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27980768-f22fc424-638a-11e7-89c9-6010a54ff9be.jpg',
@@ -239,7 +240,7 @@ module.exports = class livecoin extends Exchange {
     async fetchFees (params = {}) {
         let tradingFees = await this.fetchTradingFees (params);
         return this.extend (tradingFees, {
-            'withdraw': 0.0,
+            'withdraw': {},
         });
     }
 
@@ -506,6 +507,19 @@ module.exports = class livecoin extends Exchange {
             'tag': tag,
             'status': 'ok',
             'info': response,
+        };
+    }
+
+    async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        let request = {
+            'currency':currency,
+            'wallet': address,
+            'amount': parseFloat (amount),
+        };
+        let response = await this.privatePostPaymentOutCoin (this.extend (request, params));
+        return {
+            'info': response,
+            'id': this.safeString (response, 'id'),
         };
     }
 

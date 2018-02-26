@@ -315,7 +315,11 @@ Below is a detailed description of each of the base exchange properties:
 
 - `userAgent`: An object to set HTTP User-Agent header to. The ccxt library will set its User-Agent by default. Some exchanges may not like it. If you are having difficulties getting a reply from an exchange and want to turn User-Agent off or use the default one, set this value to false, undefined, or an empty string.
 
-- `verbose`: A boolean flag indicating whether to log HTTP requests to stdout (verbose flag is false by default).
+- `verbose`: A boolean flag indicating whether to log HTTP requests to stdout (verbose flag is false by default). Python people have an alternative way of DEBUG logging with a standard pythonic logger, which is enabled by adding these two lines to the beginning of their code:
+  ```Python
+  import logging
+  logging.basicConfig(level=logging.DEBUG)
+  ```
 
 - `markets`: An associative array of markets indexed by common trading pairs or symbols. Markets should be loaded prior to accessing this property. Markets are unavailable until you call the `loadMarkets() / load_markets()` method on exchange instance.
 
@@ -337,7 +341,7 @@ Below is a detailed description of each of the base exchange properties:
 
 - `has`: An assoc-array containing flags for exchange capabilities, including the following:
 
-    ```
+    ```JavaScript
     'has': {
 
         'CORS': false,  // has Cross-Origin Resource Sharing enabled (works from browser) or not
@@ -571,10 +575,10 @@ Most of the time users will be working with market symbols. You will get a stand
     await bitfinex.loadMarkets ()
 
     bitfinex.markets['BTC/USD']                   // symbol → market (get market by symbol)
-    bitfinex.marketsById['XRPBTC']                // id → market (get market by id)
+    bitfinex.markets_by_id['XRPBTC']              // id → market (get market by id)
 
     bitfinex.markets['BTC/USD']['id']             // symbol → id (get id by symbol)
-    bitfinex.marketsById['XRPBTC']['symbol']      // id → symbol (get symbol by id)
+    bitfinex.markets_by_id['XRPBTC']['symbol']    // id → symbol (get symbol by id)
 
 })
 ```
@@ -654,6 +658,14 @@ It depends on which exchange you are using, but some of them have a reversed (in
 
 For those exchanges the ccxt will do a correction, switching and normalizing sides of base and quote currencies when parsing exchange replies. This logic is financially and terminologically correct. If you want less confusion, remember the following rule: **base is always before the slash, quote is always after the slash in any symbol and with any market**.
 
+```
+base currency ↓
+             BTC / USDT
+             ETH / BTC
+            DASH / ETH
+                    ↑ quote currency
+```
+
 ## Market Cache Force Reload
 
 The `loadMarkets () / load_markets ()` is also a dirty method with a side effect of saving the array of markets on the exchange instance. You only need to call it once per exchange. All subsequent calls to the same method will return the locally saved (cached) array of markets.
@@ -676,14 +688,14 @@ When exchange markets are loaded, you can then access market information any tim
 
 ```Python
 # Python
-poloniex = ccxt.poloniex ({ 'verbose': True }) # log HTTP requests
-poloniex.load_markets () # request markets
-print (poloniex.id, poloniex.markets)   # output a full list of all loaded markets
-print (list (poloniex.markets.keys ())) # output a short list of market symbols
-print (poloniex.markets['BTC/ETH'])     # output single market details
-poloniex.load_markets () # return a locally cached version, no reload
-reloadedMarkets = poloniex.load_markets (True) # force HTTP reload = True
-print (reloadedMarkets['ETH/ZEC'])
+poloniex = ccxt.poloniex({'verbose': True}) # log HTTP requests
+poloniex.load_markets() # request markets
+print(poloniex.id, poloniex.markets)   # output a full list of all loaded markets
+print(list(poloniex.markets.keys())) # output a short list of market symbols
+print(poloniex.markets['BTC/ETH'])     # output single market details
+poloniex.load_markets() # return a locally cached version, no reload
+reloadedMarkets = poloniex.load_markets(True) # force HTTP reload = True
+print(reloadedMarkets['ETH/ZEC'])
 ```
 
 ```PHP
@@ -930,7 +942,7 @@ The structure of a returned order book is as follows:
 ```JavaScript
 {
     'bids': [
-        [ price, amount ],
+        [ price, amount ], // [ float, float ]
         [ price, amount ],
         ...
     ],
@@ -1030,7 +1042,7 @@ var_dump ($exchange->id, 'market price', $result);
 
 A price ticker contains statistics for a particular market/symbol for some period of time in recent past, usually last 24 hours. The structure of a ticker is as follows:
 
-```
+```JavaScript
 {
     'symbol':      string symbol of the market ('BTC/USD', 'ETH/BTC', ...)
     'info':      { the original non-modified unparsed reply from exchange API },
@@ -1182,15 +1194,15 @@ To get the list of available timeframes for your exchange see the `timeframes` p
 
 The fetchOHLCV method shown above returns a list (a flat array) of OHLCV candles represented by the following structure:
 
-```
+```JavaScript
 [
     [
-        1504541580000, // UTC timestamp in milliseconds
-        4235.4,        // (O)pen price
-        4240.6,        // (H)ighest price
-        4230.0,        // (L)owest price
-        4230.7,        // (C)losing price
-        37.72941911    // (V)olume (in terms of the base currency)
+        1504541580000, // UTC timestamp in milliseconds, integer
+        4235.4,        // (O)pen price, float
+        4240.6,        // (H)ighest price, float
+        4230.0,        // (L)owest price, float
+        4230.7,        // (C)losing price, float
+        37.72941911    // (V)olume (in terms of the base currency), float
     ],
     ...
 ]
@@ -1239,7 +1251,7 @@ foreach ($exchange->markets as $symbol => $market) {
 
 The fetchTrades method shown above returns an ordered list of trades (a flat array, most recent trade first) represented by the following structure:
 
-```
+```JavaScript
 [
     {
         'info':       { ... },                  // the original decoded JSON as is
@@ -1437,7 +1449,7 @@ The list of methods for querying orders consists of the following:
 - `fetchOpenOrders (symbol = undefined, since = undefined, limit = undefined, params = {})`
 - `fetchClosedOrders (symbol = undefined, since = undefined, limit = undefined, params = {})`
 
-Note that the naming of those methods indicates if the method returns a single order or multiple orders (an array/list of orders). Note, that `fetchOrder()` requires a mandatory order id argument (a string). Some exchanges also require a symbol to fetch an order by id, where order ids can intersect with various trading pairs. Also note that all other methods above return an array (a list) of orders. Most of them will also require a symbol, however, some exchanges allow querying with a symbol unspecified (all symbols).
+Note that the naming of those methods indicates if the method returns a single order or multiple orders (an array/list of orders). The `fetchOrder()` method requires a mandatory order id argument (a string). Some exchanges also require a symbol to fetch an order by id, where order ids can intersect with various trading pairs. Also, note that all other methods above return an array (a list) of orders. Most of them will require a symbol argument as well, however, some exchanges allow querying with a symbol unspecified (meaning *all symbols*).
 
 The library will throw a NotSupported exception if a user calls a method that is not available from the exchange or is not implemented in ccxt.
 
@@ -1747,14 +1759,14 @@ Returns ordered array of trades (most recent trade first).
 ### Deposit
 
 ```
-fetchDepositAddress (code, params={})
-createDepositAddress (code, params={})
+fetchDepositAddress (code, params = {})
+createDepositAddress (code, params = {})
 ```
 
-- code is the currency code
-- params contains optional extra overrides
+- `code` is the currency code (uppercase string)
+- `params` contains optional extra overrides
 
-```
+```JavaScript
 {
     'currency': currency, // currency code
     'address': address,   // address in terms of requested currency
@@ -1771,7 +1783,7 @@ exchange.withdraw (currency, amount, address, tag = undefined, params = {})
 
 The withdraw method returns a dictionary containing the withdrawal id, which is usually the txid of the onchain transaction itself, or an internal *withdrawal request id* registered within the exchange. The returned value looks as follows:
 
-```
+```JavaScript
 {
     'info' { ... },      // unparsed reply from the exchange, as is
     'id': '12345567890', // string withdrawal id, if any
@@ -1979,6 +1991,11 @@ In case you experience any difficulty connecting to a particular exchange, do th
 
 - Check the [CHANGELOG](https://github.com/ccxt/ccxt/blob/master/CHANGELOG.md) for recent updates.
 - Turn `verbose = true` to get more detail about it.
+- Python people can turn on DEBUG logging level with a standard pythonic logger, by adding these two lines to the beginning of their code:
+  ```Python
+  import logging
+  logging.basicConfig(level=logging.DEBUG)
+  ```
 - Check your API credentials. Try a fresh new keypair if possible.
 - If it is a Cloudflare protection error, try these examples:
   - https://github.com/ccxt/ccxt/blob/master/examples/js/bypass-cloudflare.js
@@ -1994,6 +2011,7 @@ In case you experience any difficulty connecting to a particular exchange, do th
 ## Notes
 
 - Use the `verbose = true` option or instantiate your troublesome exchange with `new ccxt.exchange ({ 'verbose': true })` to see the HTTP requests and responses in details. The verbose output will also be of use for us to debug it if you submit an issue on GitHub.
+- Use DEBUG logging in Python!
 - As written above, some exchanges are not available in certain countries. You should use a proxy or get a server somewhere closer to the exchange.
 - If you are getting authentication errors or *'invalid keys'* errors, those are most likely due to a nonce issue.
 - Some exchanges do not state it clearly if they fail to authenticate your request. In those circumstances they might respond with an exotic error code, like HTTP 502 Bad Gateway Error or something that's even less related to the actual cause of the error.
