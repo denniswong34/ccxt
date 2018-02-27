@@ -21,8 +21,9 @@ module.exports = class cobinhood extends Exchange {
                 'fetchClosedOrders': true,
                 'fetchOrder': true,
                 'fetchOrderBook': true,
-                'fetchBalance': false,
-                'fetchDepositAddress': false,
+                'fetchBalance': true,
+                'fetchDepositAddress': true,
+                'withdraw': true,
             },
             'requiredCredentials': {
                 'apiKey': true,
@@ -485,7 +486,7 @@ module.exports = class cobinhood extends Exchange {
         let response = await this.privateGetWalletDepositAddresses (this.extend ({
             'currency': currency['id'],
         }, params));
-        let address = this.safeString (response['result']['deposit_addresses'], 'address');
+        let address = this.safeString (response['result']['deposit_addresses'][0], 'address');
         if (!address)
             throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
         return {
