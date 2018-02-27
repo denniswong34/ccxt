@@ -21,6 +21,7 @@ module.exports = class bittrex extends Exchange {
                 'CORS': true,
                 'createMarketOrder': false,
                 'fetchDepositAddress': true,
+                'fetchBalance': true,
                 'fetchClosedOrders': 'emulated',
                 'fetchCurrencies': true,
                 'fetchMyTrades': false,
@@ -243,10 +244,13 @@ module.exports = class bittrex extends Exchange {
         let previous = this.safeFloat (ticker, 'PrevDay');
         let last = this.safeFloat (ticker, 'Last');
         let change = undefined;
+        let percentage = undefined;
         if (typeof last !== 'undefined')
-            if (typeof previous !== 'undefined')
+            if (typeof previous !== 'undefined') {
+                change = last - previous;
                 if (previous > 0)
-                    change = (last - previous) / previous;
+                    percentage = (change / previous) * 100;
+            }
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -261,7 +265,7 @@ module.exports = class bittrex extends Exchange {
             'first': undefined,
             'last': last,
             'change': change,
-            'percentage': undefined,
+            'percentage': percentage,
             'average': undefined,
             'baseVolume': this.safeFloat (ticker, 'Volume'),
             'quoteVolume': this.safeFloat (ticker, 'BaseVolume'),
@@ -605,6 +609,8 @@ module.exports = class bittrex extends Exchange {
     currencyId (currency) {
         if (currency === 'BCH')
             return 'BCC';
+        if (currency === 'USNBT')
+            return 'NBT';
         return currency;
     }
 
@@ -692,6 +698,8 @@ module.exports = class bittrex extends Exchange {
                 throw new AuthenticationError (this.id + ' ' + this.json (response));
             if (response['message'] === 'INSUFFICIENT_FUNDS')
                 throw new InsufficientFunds (this.id + ' ' + this.json (response));
+            if (response['message'] === 'QUANTITY_NOT_PROVIDED')
+                throw new InvalidOrder (this.id + ' ' + this.json (response));
             if (response['message'] === 'MIN_TRADE_REQUIREMENT_NOT_MET')
                 throw new InvalidOrder (this.id + ' ' + this.json (response));
             if (response['message'] === 'APIKEY_INVALID') {

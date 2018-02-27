@@ -14,6 +14,7 @@ except NameError:
 import math
 import json
 from ccxt.base.errors import ExchangeError
+from ccxt.base.errors import AuthenticationError
 from ccxt.base.errors import InsufficientFunds
 from ccxt.base.errors import InvalidOrder
 from ccxt.base.errors import OrderNotFound
@@ -322,11 +323,12 @@ class binance (Exchange):
                 'adjustForTimeDifference': False,  # controls the adjustment logic upon instantiation
             },
             'exceptions': {
+                '-1013': InvalidOrder,  # createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
+                '-1021': InvalidNonce,  # 'your time is ahead of server'
+                '-1100': InvalidOrder,  # createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
                 '-2010': InsufficientFunds,  # createOrder -> 'Account has insufficient balance for requested action.'
                 '-2011': OrderNotFound,  # cancelOrder(1, 'BTC/USDT') -> 'UNKNOWN_ORDER'
-                '-1013': InvalidOrder,  # createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
-                '-1100': InvalidOrder,  # createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
-                '-1021': InvalidNonce,  # 'your time is ahead of server'
+                '-2015': AuthenticationError,  # "Invalid API-key, IP, or permissions for action."
             },
         })
 
@@ -468,6 +470,7 @@ class binance (Exchange):
                 market = self.markets_by_id[symbol]
         if market is not None:
             symbol = market['symbol']
+        last = self.safe_float(ticker, 'lastPrice')
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -480,9 +483,9 @@ class binance (Exchange):
             'askVolume': self.safe_float(ticker, 'askQty'),
             'vwap': self.safe_float(ticker, 'weightedAvgPrice'),
             'open': self.safe_float(ticker, 'openPrice'),
-            'close': self.safe_float(ticker, 'prevClosePrice'),
-            'first': None,
-            'last': self.safe_float(ticker, 'lastPrice'),
+            'close': last,
+            'last': last,
+            'previousClose': self.safe_float(ticker, 'prevClosePrice'),  # previous day close
             'change': self.safe_float(ticker, 'priceChange'),
             'percentage': self.safe_float(ticker, 'priceChangePercent'),
             'average': None,

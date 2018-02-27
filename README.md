@@ -46,7 +46,7 @@ The ccxt library currently supports the following 99 cryptocurrency exchange mar
 |![bitstamp](https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg)           | bitstamp           | [Bitstamp](https://www.bitstamp.net)                      | 2   | [API](https://www.bitstamp.net/api)                                                          | UK                                      |
 |![bitstamp1](https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg)          | bitstamp1          | [Bitstamp v1](https://www.bitstamp.net)                   | 1   | [API](https://www.bitstamp.net/api)                                                          | UK                                      |
 |![bittrex](https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg)            | bittrex            | [Bittrex](https://bittrex.com)                            | 1.1 | [API](https://bittrex.com/Home/Api)                                                          | US                                      |
-|![bitz](https://user-images.githubusercontent.com/1294454/35862606-4f554f14-0b5d-11e8-957d-35058c504b6f.jpg)               | bitz               | [Bit-Z](https://www.bit-z.com/)                           | *   | [API](https://www.bit-z.com/api.html)                                                        | Hong Kong                               |
+|![bitz](https://user-images.githubusercontent.com/1294454/35862606-4f554f14-0b5d-11e8-957d-35058c504b6f.jpg)               | bitz               | [Bit-Z](https://www.bit-z.com)                            | 1   | [API](https://www.bit-z.com/api.html)                                                        | Hong Kong                               |
 |![bl3p](https://user-images.githubusercontent.com/1294454/28501752-60c21b82-6feb-11e7-818b-055ee6d0e754.jpg)               | bl3p               | [BL3P](https://bl3p.eu)                                   | 1   | [API](https://github.com/BitonicNL/bl3p-api/tree/master/docs)                                | Netherlands, EU                         |
 |![bleutrade](https://user-images.githubusercontent.com/1294454/30303000-b602dbe6-976d-11e7-956d-36c5049c01e7.jpg)          | bleutrade          | [Bleutrade](https://bleutrade.com)                        | 2   | [API](https://bleutrade.com/help/API)                                                        | Brazil                                  |
 |![braziliex](https://user-images.githubusercontent.com/1294454/34703593-c4498674-f504-11e7-8d14-ff8e44fb78c1.jpg)          | braziliex          | [Braziliex](https://braziliex.com/)                       | *   | [API](https://braziliex.com/exchange/api.php)                                                | Brazil                                  |
@@ -134,7 +134,7 @@ The library is under [MIT license](https://github.com/ccxt/ccxt/blob/master/LICE
 The easiest way to install the ccxt library is to use builtin package managers:
 
 - [ccxt in **NPM**](http://npmjs.com/package/ccxt) (JavaScript / Node v7.6+)
-- [ccxt in **PyPI**](https://pypi.python.org/pypi/ccxt) (Python 2 and 3)
+- [ccxt in **PyPI**](https://pypi.python.org/pypi/ccxt) (Python 2 and 3.5.3+)
 - [ccxt in **Packagist/Composer**](https://packagist.org/packages/ccxt/ccxt) (PHP 5.3+)
 
 This library is shipped as an all-in-one module implementation with minimalistic dependencies and requirements:
@@ -194,7 +194,7 @@ import ccxt
 print(ccxt.exchanges) # print a list of all available exchange classes
 ```
 
-The library supports concurrent asynchronous mode with asyncio and async/await in Python 3.5+
+The library supports concurrent asynchronous mode with asyncio and async/await in Python 3.5.3+
 
 ```Python
 import ccxt.async as ccxt # link against the asynchronous version of ccxt

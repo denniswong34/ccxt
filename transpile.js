@@ -56,6 +56,7 @@ const commonRegexes = [
     [ /\.parseBalance\s/g, '.parse_balance'],
     [ /\.parseOHLCVs\s/g, '.parse_ohlcvs'],
     [ /\.parseOHLCV\s/g, '.parse_ohlcv'],
+    [ /\.parseDate\s/g, '.parse_date'],
     [ /\.parseTicker\s/g, '.parse_ticker'],
     [ /\.parseTradesData\s/g, '.parse_trades_data'],
     [ /\.parseTrades\s/g, '.parse_trades'],
@@ -85,6 +86,7 @@ const commonRegexes = [
     [ /\.fetchOpenOrders\s/g, '.fetch_open_orders'],
     [ /\.fetchOpenOrder\s/g, '.fetch_open_order'],
     [ /\.fetchOrders\s/g, '.fetch_orders'],
+    [ /\.fetchOrderTrades\s/g, '.fetch_order_trades'],
     [ /\.fetchOrder\s/g, '.fetch_order'],
     [ /\.fetchBidsAsks\s/g, '.fetch_bids_asks'],
     [ /\.fetchTickers\s/g, '.fetch_tickers'],
@@ -200,7 +202,7 @@ const pythonRegexes = [
         [ /Math\.(max|min)\s/g, '$1' ],
         [ /console\.log\s/g, 'print'],
         [ /process\.exit\s+/g, 'sys.exit'],
-        [ /([^:+=\s]+) \(/g, '$1(' ], // PEP8 E225 remove whitespaces before left ( round bracket
+        [ /([^:+=\/\*\s-]+) \(/g, '$1(' ], // PEP8 E225 remove whitespaces before left ( round bracket
         [ /\[ /g, '[' ],              // PEP8 E201 remove whitespaces after left [ square bracket
         [ /\{ /g, '{' ],              // PEP8 E201 remove whitespaces after left { bracket
         [ /([^\s]+) \]/g, '$1]' ],    // PEP8 E202 remove whitespaces before right ] square bracket

@@ -78,7 +78,7 @@ The ccxt library currently supports the following 99 cryptocurrency exchange mar
 |![bitstamp](https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg)           | bitstamp           | [Bitstamp](https://www.bitstamp.net)                      | 2   | [API](https://www.bitstamp.net/api)                                                          | UK                                      |
 |![bitstamp1](https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg)          | bitstamp1          | [Bitstamp v1](https://www.bitstamp.net)                   | 1   | [API](https://www.bitstamp.net/api)                                                          | UK                                      |
 |![bittrex](https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg)            | bittrex            | [Bittrex](https://bittrex.com)                            | 1.1 | [API](https://bittrex.com/Home/Api)                                                          | US                                      |
-|![bitz](https://user-images.githubusercontent.com/1294454/35862606-4f554f14-0b5d-11e8-957d-35058c504b6f.jpg)               | bitz               | [Bit-Z](https://www.bit-z.com/)                           | *   | [API](https://www.bit-z.com/api.html)                                                        | Hong Kong                               |
+|![bitz](https://user-images.githubusercontent.com/1294454/35862606-4f554f14-0b5d-11e8-957d-35058c504b6f.jpg)               | bitz               | [Bit-Z](https://www.bit-z.com)                            | 1   | [API](https://www.bit-z.com/api.html)                                                        | Hong Kong                               |
 |![bl3p](https://user-images.githubusercontent.com/1294454/28501752-60c21b82-6feb-11e7-818b-055ee6d0e754.jpg)               | bl3p               | [BL3P](https://bl3p.eu)                                   | 1   | [API](https://github.com/BitonicNL/bl3p-api/tree/master/docs)                                | Netherlands, EU                         |
 |![bleutrade](https://user-images.githubusercontent.com/1294454/30303000-b602dbe6-976d-11e7-956d-36c5049c01e7.jpg)          | bleutrade          | [Bleutrade](https://bleutrade.com)                        | 2   | [API](https://bleutrade.com/help/API)                                                        | Brazil                                  |
 |![braziliex](https://user-images.githubusercontent.com/1294454/34703593-c4498674-f504-11e7-8d14-ff8e44fb78c1.jpg)          | braziliex          | [Braziliex](https://braziliex.com/)                       | *   | [API](https://braziliex.com/exchange/api.php)                                                | Brazil                                  |
@@ -548,7 +548,7 @@ The ccxt library abstracts uncommon market ids to symbols, standardized to a com
 
 A symbol is an uppercase string literal name for a pair of traded currencies with a slash in between. A currency is a code of three or four uppercase letters, like `BTC`, `ETH`, `USD`, `GBP`, `CNY`, `LTC`, `JPY`, `DOGE`, `RUB`, `ZEC`, `XRP`, `XMR`, etc. Some exchanges have exotic currencies with longer names. The first currency before the slash is usually called *base currency*, and the one after the slash is called *quote currency*.  Examples of a symbol are: `BTC/USD`, `DOGE/LTC`, `ETH/EUR`, `DASH/XRP`, `BTC/CNY`, `ZEC/XMR`, `ETH/JPY`.
 
-Market structures are indexed by symbols and ids. The base exchange class also has builtin methods for accessing markets by symbols. Most API methods require a symbol to be passed in their first parameter. You are often required to specify a symbol when querying current prices, making orders, etc.
+Market structures are indexed by symbols and ids. The base exchange class also has builtin methods for accessing markets by symbols. Most API methods require a symbol to be passed in their first argument. You are often required to specify a symbol when querying current prices, making orders, etc.
 
 Most of the time users will be working with market symbols. You will get a standard userland exception if you access non-existent keys in these dicts.
 
@@ -900,7 +900,7 @@ Note, that most of methods of the unified API accept an optional `params` parame
   - [Individually By Symbol](https://github.com/ccxt/ccxt/wiki/Manual#individually-by-symbol)
   - [All At Once](https://github.com/ccxt/ccxt/wiki/Manual#all-at-once)
 - [OHLCV Candlestick Charts](https://github.com/ccxt/ccxt/wiki/Manual#ohlcv-candlestick-charts)
-- [Public Trades And Closed Orders](https://github.com/ccxt/ccxt/wiki/Manual#trades-orders-executions-transactions)
+- [Public Trades](https://github.com/ccxt/ccxt/wiki/Manual#public-trades)
 
 ## Order Book
 
@@ -1044,26 +1044,32 @@ A price ticker contains statistics for a particular market/symbol for some perio
 
 ```JavaScript
 {
-    'symbol':      string symbol of the market ('BTC/USD', 'ETH/BTC', ...)
-    'info':      { the original non-modified unparsed reply from exchange API },
-    'timestamp':   int (64-bit Unix Timestamp in milliseconds since Epoch 1 Jan 1970)
-    'datetime':    ISO8601 datetime string with milliseconds
-    'high':        float (highest price)
-    'low':         float (lowest price)
-    'bid':         float (current bid (buy) price)
-    'ask':         float (current ask (sell) price)
-    'vwap':        float (volume weighed average price)
-    'open':        float (open price),
-    'first':       float (price of first trade),
-    'last':        float (price of last trade),
-    'change':      float (percentage change),
-    'average':     float (average),
-    'baseVolume':  float (volume of base currency),
-    'quoteVolume': float (volume of quote currency),
+    'symbol':        string symbol of the market ('BTC/USD', 'ETH/BTC', ...)
+    'info':        { the original non-modified unparsed reply from exchange API },
+    'timestamp':     int (64-bit Unix Timestamp in milliseconds since Epoch 1 Jan 1970)
+    'datetime':      ISO8601 datetime string with milliseconds
+    'high':          float, // highest price
+    'low':           float, // lowest price
+    'bid':           float, // current best bid (buy) price
+    'bidVolume':     float, // current best bid (buy) amount
+    'ask':           float, // current best ask (sell) price
+    'askVolume':     float, // current best ask (sell) amount
+    'vwap':          float, // volume weighed average price
+    'open':          float, // opening price
+    'close':         float, // price of last trade (closing price for current period)
+    'last':          float, // same as `close`, duplicated for convenience
+    'previousClose': float, // closing price for the previous period
+    'change':        float, // absolute change, `last - open`
+    'percentage':    float, // relative change, `(change/open) * 100`
+    'average':       float, // average price, `(last + open) / 2`
+    'baseVolume':    float, // volume of base currency
+    'quoteVolume':   float, // volume of quote currency
 }
 ```
 
 Timestamp and datetime are both Universal Time Coordinated (UTC).
+
+Although some exchanges do mix-in orderbook's top bid/ask prices into their tickers (and some even top bid/asks volumes) you should not treat ticker as a `fetchOrderBook` replacement. The main purpose of a ticker is to serve statistical data, as such, treat it as "live 24h OHLCV". It is known that exchanges discourage frequent `fetchTicker` requests by imposing stricter rate limits on these queries. If you need a unified way to access bid/asks you should use `fetchL[123]OrderBook` family instead.
 
 ### Individually By Symbol
 
@@ -1173,7 +1179,7 @@ if (exchange.has.fetchOHLCV) {
 ```Python
 # Python
 import time
-if exchange.hasFetchOHLCV:
+if exchange.has['fetchOHLCV']:
     for symbol in exchange.markets:
         time.sleep (exchange.rateLimit / 1000) # time.sleep wants seconds
         print (symbol, exchange.fetch_ohlcv (symbol, '1d')) # one day
@@ -1181,7 +1187,7 @@ if exchange.hasFetchOHLCV:
 
 ```PHP
 // PHP
-if ($exchange->hasFetchOHLCV)
+if ($exchange->has['fetchOHLCV'])
     foreach ($exchange->markets as $symbol => $market) {
         usleep ($exchange.rateLimit * 1000); // usleep wants microseconds
         var_dump ($exchange->fetch_ohlcv ($symbol, '1M')); // one month
@@ -1207,6 +1213,12 @@ The fetchOHLCV method shown above returns a list (a flat array) of OHLCV candles
     ...
 ]
 ```
+
+### OHLCV Emulation
+
+Some exchanges don't offer any OHLCV method, and for those, the ccxt library will emulate OHLCV candles from [Public Trades](https://github.com/ccxt/ccxt/wiki/Manual#trades-executions-transactions). In that case you will see `exchange.has['fetchOHLCV'] = 'emulated'`. However, because the trade history is usually very limited, the emulated fetchOHLCV methods cover most recent info only and should only be used as a fallback, when no other option is available.
+
+**WARNING: the fetchOHLCV emulations is experimental!**
 
 ## Trades, Executions, Transactions
 
@@ -1249,7 +1261,7 @@ foreach ($exchange->markets as $symbol => $market) {
 }
 ```
 
-The fetchTrades method shown above returns an ordered list of trades (a flat array, most recent trade first) represented by the following structure:
+The fetchTrades method shown above returns an ordered list of trades (a flat array, sorted by timestamp in ascending order, most recent trade last) represented by the following structure:
 
 ```JavaScript
 [
@@ -1309,7 +1321,7 @@ The API credentials usually include the following:
 
 In order to create API keys find the API tab or button in your user settings on the exchange website. Then create your keys and copy-paste them to your config file. Your config file permissions should be set appropriately, unreadable to anyone except the owner.
 
-**Remember to keep your secret key safe from unauthorized use, do not send or tell it to anybody. A leak of the secret key or a breach in security can cost you a fund loss.**
+**Remember to keep your apiKey and secret key safe from unauthorized use, do not send or tell it to anybody. A leak of the secret key or a breach in security can cost you a fund loss.**
 
 To set up an exchange for trading just assign the API credentials to an existing exchange instance or pass them to exchange constructor upon instantiation, like so:
 
@@ -1516,6 +1528,41 @@ In most cases the `.orders` cache will work transparently for the user. Most oft
 - If an unhandled error leads to a crash of the application and the `.orders` cache isn't saved and restored upon restart, the cache will be lost. Handling the exceptions properly is the responsibility of the user. One has to pay **extra care** when implementing proper [error handling](#error-handling), otherwise the `.orders` cache may fall out of sync.
 
 *Note: the order cache functionality is to be reworked soon to obtain the order statuses from private trades history, where available. This is a work in progress, aimed at adding full-featured support for order fees, costs and other info. More about it here: https://github.com/ccxt/ccxt/issues/569*.
+
+#### Purging Cached Orders
+
+With some long-running instances it might be critical to free up used resources when they aren't needed anymore. Because in active trading the `.orders` cache can grow pretty big, the ccxt library offers the `purgeCachedOrders/purge_cached_orders` method for clearing old non-open orders (`(order['timestamp'] <= before) && (order['status'] != 'open')`) from cache and free used memory for other purposes. The purging method accepts one single argument named `before`:
+
+```JavaScript
+// JavaScript
+
+// keep last 24 hours of history in cache
+before = exchange.milliseconds () - 24 * 60 * 60 * 1000
+
+// purge all closed and canceled orders "older" or issued "before" that time
+exchange.purgeCachedOrders (before)
+```
+
+```Python
+# Python
+
+# keep last hour of history in cache
+before = exchange.milliseconds () - 1 * 60 * 60 * 1000;
+
+# purge all closed and canceled orders "older" or issued "before" that time
+exchange.purge_cached_orders (before)
+```
+
+```PHP
+// PHP
+
+// keep last 24 hours of history in cache
+$before = $exchange->milliseconds () - 24 * 60 * 60 * 1000;
+
+// purge all closed and canceled orders "older" or issued "before" that time
+$exchange->purge_cached_orders ($before);
+
+```
 
 #### By Order Id
 
@@ -1725,7 +1772,9 @@ As such, `cancelOrder()` can throw an `OrderNotFound` exception in these cases:
 - canceling an already-closed order
 - canceling an already-canceled order
 
-## Trades / Transactions / Fills / Executions
+## Personal Trades
+
+
 
 ```
 - this part of the unified API is currenty a work in progress
@@ -1733,7 +1782,73 @@ As such, `cancelOrder()` can throw an `OrderNotFound` exception in these cases:
 - contributions, pull requests and feedback appreciated
 ```
 
-A trade is a result of order execution. Note, that orders and trades have a one-to-many relationship: an execution of one order may result in several trades. However, when one order matches another opposing order, the pair of two matching orders yields one trade. Thus, when an order matches multiple opposing orders, this yields multiple trades, one trade per each pair of matched orders.
+### How Orders Are Related To Trades
+
+A trade is also often called `a fill`. Each trade is a result of order execution. Note, that orders and trades have a one-to-many relationship: an execution of one order may result in several trades. However, when one order matches another opposing order, the pair of two matching orders yields one trade. Thus, when an order matches multiple opposing orders, this yields multiple trades, one trade per each pair of matched orders.
+
+To put it shortly, an order can contain *one or more* trades. Or, in other words, an order can be *filled* with one or more trades.
+
+For example, an orderbook can have the following orders (whatever trading symbol or pair it is):
+
+```
+    | price | amount
+----|----------------
+  a |  1.200 | 200
+  s |  1.100 | 300
+  k |  0.900 | 100
+----|----------------
+  b |  0.800 | 100
+  i |  0.700 | 200
+  d |  0.500 | 100
+```
+
+All specific numbers above aren't real, this is just to illustrate the way orders and trades are related in general.
+
+A seller decides to place a sell limit order on the ask side for a price of 0.700 and an amount of 150.
+
+```
+    | price | amount
+----|----------------  ↓
+  a |  1.200 | 200     ↓
+  s |  1.100 | 300     ↓
+  k |  0.900 | 100     ↓
+----|----------------  ↓
+  b |  0.800 | 100     ↓ sell 150 for 0.700
+  i |  0.700 | 200     --------------------
+  d |  0.500 | 100
+```
+
+As the price and amount of the incoming sell (ask) order cover more than one bid order (orders `b` and `i`), the following sequence of events usually happens within an exchange engine very quickly, but not immediately:
+
+1. Order `b` is matched against the incoming sell because their prices intersect. Their volumes *"mutually annihilate"* each other, so, the bidder gets 100 for a price of 0.800. The seller (asker) will have his sell order partially filled by bid volume of 100.
+
+2. A trade is generated for the order `b` against the incoming sell order. That trade *"fills"* the entire order `b` and most of the sell order. One trade is generated pear each pair of matched orders, whether the amount was filled completely or partially. In this example the amount of 100 fills order `b` completely (closed the order `b`) and also fills the selling order partially (leaves it open in the orderbook).
+
+3. Order `b` now has a status of `closed` and a filled volume of 100. It contains one trade against the selling order. The selling order has `open` status and a filled volume of 100. It contains one trade against order `b`. Thus each order has just one fill-trade so far.
+
+3. The incoming sell order has a filled amount of 100 and has yet to fill the reamining amount of 50 from its initial amount of 150 in total.
+
+4. Order `i` is matched against the remaining part of incoming sell, because their prices intersect. The amount of buying order `i` which is 200 completely annihilates the reamining sell amount of 50. The order `i` is filled partially by 50, but the rest of its volume, namely the remaining amount of 150 will stay in the orderbook. The selling order, however, is filled completely by this second match.
+
+5. A trade is generated for the order `i` against the incoming sell order. That trade partially fills order `i`. And completes the filling of the sell order. Again, this is just one trade for a pair of matched orders.
+
+6. Order `i` now has a status of `open`, a filled amount of 50, and a remaining amount of 150. It contains one filling trade against the selling order. The selling order has a `closed` status now, as it was completely filled its total initial amount of 150. However, it contains two trades, the first against order `b` and the second against order `i`. Thus each order can have one or more filling trades, depending on how their volumes were matched by the exchange engine.
+
+After the above sequence takes place, the updated orderbook will look like this.
+
+```
+    | price | amount
+----|----------------
+  a |  1.200 | 200
+  s |  1.100 | 300
+  k |  0.900 | 100
+----|----------------
+  i |  0.700 | 150
+  d |  0.500 | 100
+```
+
+Notice that the order `b` has disappeared, the selling order also isn't there. All closed and fully-filled orders disappear from the orderbook. The order `i` which was filled partially and still has a remaining volume and an `open` status, is still there.
+
 
 ### Recent Trades
 
@@ -1943,47 +2058,72 @@ Below is an outline of exception inheritance hierarchy:
     +---+ InvalidNonce
 ```
 
-- `BaseError`: Generic error class for all sorts of errors, including accessibility and request/response mismatch. Users should catch this exception at the very least, if no error differentiation is required.
+The `BaseError` class is a generic error class for all sorts of errors, including accessibility and request/response mismatch. Users should catch this exception at the very least, if no error differentiation is required.
 
-  - `ExchangeError`: This exception is thrown when an exchange server replies with an error in JSON. Possible reasons:
-    - endpoint is switched off by the exchange
-    - symbol not found on the exchange
-    - required parameter is missing
-    - the format of parameters is incorrect
-    - an exchange replies with an unclear answer
+## ExchangeError
 
-    Other exceptions derived from `ExchangeError`:
-    - `NotSupported`: This exception is raised if the endpoint is not offered/not supported by the exchange API.
-    - `AuthenticationError`: Raised when an exchange requires one of the API credentials that you've missed to specify, or when there's a mistake in the keypair or an outdated nonce. Most of the time you need `apiKey` and `secret`, sometimes you also need `uid` and/or `password`.
-    - `InsufficientFunds`: This exception is raised when you don't have enough currency on your account balance to place an order.
-    - `InvalidOrder`: This exception is the base class for all exceptions related to the unified order API.
-      - `OrderNotFound`: Raised when you are trying to fetch or cancel a non-existent order.
+This exception is thrown when an exchange server replies with an error in JSON. Possible reasons:
 
-  - `NetworkError`: All errors related to networking are usually recoverable, meaning that networking problems, traffic congestion, unavailability is usually time-dependent. Making a retry later is usually enough to recover from a NetworkError, but if it doesn't go away, then it may indicate some persistent problem with the exchange or with your connection.
-    - `DDoSProtection`: This exception is thrown whenever Cloudflare or Incapsula rate limiter restrictions are enforced per user or region/location. The ccxt library does a case-insensitive search in the response received from the exchange for one of the following keywords:
-      - `cloudflare`
-      - `incapsula`
-    - `RequestTimeout`: This exception is raised when the connection with the exchange fails or data is not fully received in a specified amount of time. This is controlled by the `timeout` option. When a `RequestTimeout` is raised, the user doesn't know the outcome of a request (whether it was accepted by the exchange server or not). Thus it's advised to handle this type of exception in the following manner:
-      - for fetching requests it is safe to retry the call
-      - for a request to `cancelOrder(id, symbol)` a user is required to retry the same call the second time. If instead of a retry a user calls a `fetchOrder()`, `fetchOrders()`, `fetchOpenOrders()` or `fetchClosedOrders()` right away without a retry to call `cancelOrder()`, this may cause the [`.orders` cache](#orders-cache) to fall out of sync. A subsequent retry will return one of the following possible results:
-        - a request is completed successfully, meaning the order has been properly canceled now
-        - an `OrderNotFound` exception is raised, which means the order was either already canceled on the first attempt or has been executed (filled and closed) in the meantime between the two attempts. Note, that the order will still have an `'open'` status in the `.orders` cache. To determine the actual order status you'll need to call `fetchOrder(id)` to update the cache properly (where available from the exchange). If the `fetchOrder()` method is `'emulated'` the ccxt library will mark the order as `'closed'`. The user has to call `fetchBalance()` and set the order status to `'canceled'` manually if the balance hasn't changed (a trade didn't not occur).
-      - if a request to `createOrder()` fails with a `RequestTimeout` the user should:
-        - update the `.orders` cache with a call to `fetchOrders()`, `fetchOpenOrders()`, `fetchClosedOrders()` to check if the request to place the order has succeeded and the order is now open
-        - if the order is not `'open'` the user should `fetchBalance()` to check if the balance has changed since the order was created on the first run, then filled and closed by the time of the second check. Note that `fetchBalance()` relies on the `.orders` cache for [balance inference](#balance-inference) and thus should only be called after updating the cache!
-    - `ExchangeNotAvailable`: The ccxt library throws this error if it detects any of the following keywords in response:
-      - `offline`
-      - `unavailable`
-      - `busy`
-      - `retry`
-      - `wait`
-      - `maintain`
-      - `maintenance`
-      - `maintenancing`
-    - `InvalidNonce`: Raised when your nonce is less than the previous nonce used with your keypair, as described in the [Authentication](https://github.com/ccxt/ccxt/wiki/Manual#authentication) section. This type of exception is thrown in these cases (in order of precedence for checking):
-      - Your API keys are not fresh and new (have been used with some different software or script already).
-      - The same keypair is shared across multiple instances of the exchange class (for example, in a multithreaded environment or in separate processes).
-      - Your system clock is out of synch. System time should be synched with UTC in a non-DST timezone at a rate of once every ten minutes or even more frequently because of the clock drifting. **Enabling time synch in Windows is usually not enough!** You have to set it up with the OS Registry (Google *"time synch frequency"* for your OS).
+  - endpoint is switched off by the exchange
+  - symbol not found on the exchange
+  - required parameter is missing
+  - the format of parameters is incorrect
+  - an exchange replies with an unclear answer
+
+Other exceptions derived from `ExchangeError`:
+
+  - `NotSupported`: This exception is raised if the endpoint is not offered/not supported by the exchange API.
+  - `AuthenticationError`: Raised when an exchange requires one of the API credentials that you've missed to specify, or when there's a mistake in the keypair or an outdated nonce. Most of the time you need `apiKey` and `secret`, sometimes you also need `uid` and/or `password`.
+  - `InsufficientFunds`: This exception is raised when you don't have enough currency on your account balance to place an order.
+  - `InvalidOrder`: This exception is the base class for all exceptions related to the unified order API.
+  - `OrderNotFound`: Raised when you are trying to fetch or cancel a non-existent order.
+
+## NetworkError
+
+All errors related to networking are usually recoverable, meaning that networking problems, traffic congestion, unavailability is usually time-dependent. Making a retry later is usually enough to recover from a NetworkError, but if it doesn't go away, then it may indicate some persistent problem with the exchange or with your connection.
+
+### DDoSProtection
+
+This exception is thrown whenever Cloudflare or Incapsula rate limiter restrictions are enforced per user or region/location. The ccxt library does a case-insensitive search in the response received from the exchange for one of the following keywords:
+
+  - `cloudflare`
+  - `incapsula`
+
+### RequestTimeout
+
+This exception is raised when the connection with the exchange fails or data is not fully received in a specified amount of time. This is controlled by the `timeout` option. When a `RequestTimeout` is raised, the user doesn't know the outcome of a request (whether it was accepted by the exchange server or not).
+
+Thus it's advised to handle this type of exception in the following manner:
+
+- for fetching requests it is safe to retry the call
+- for a request to `cancelOrder(id, symbol)` a user is required to retry the same call the second time. If instead of a retry a user calls a `fetchOrder()`, `fetchOrders()`, `fetchOpenOrders()` or `fetchClosedOrders()` right away without a retry to call `cancelOrder()`, this may cause the [`.orders` cache](#orders-cache) to fall out of sync. A subsequent retry will return one of the following possible results:
+  - a request is completed successfully, meaning the order has been properly canceled now
+  - an `OrderNotFound` exception is raised, which means the order was either already canceled on the first attempt or has been executed (filled and closed) in the meantime between the two attempts. Note, that the order will still have an `'open'` status in the `.orders` cache. To determine the actual order status you'll need to call `fetchOrder(id)` to update the cache properly (where available from the exchange). If the `fetchOrder()` method is `'emulated'` the ccxt library will mark the order as `'closed'`. The user has to call `fetchBalance()` and set the order status to `'canceled'` manually if the balance hasn't changed (a trade didn't not occur).
+- if a request to `createOrder()` fails with a `RequestTimeout` the user should:
+  - update the `.orders` cache with a call to `fetchOrders()`, `fetchOpenOrders()`, `fetchClosedOrders()` to check if the request to place the order has succeeded and the order is now open
+  - if the order is not `'open'` the user should `fetchBalance()` to check if the balance has changed since the order was created on the first run, then filled and closed by the time of the second check. Note that `fetchBalance()` relies on the `.orders` cache for [balance inference](#balance-inference) and thus should only be called after updating the cache!
+
+### ExchangeNotAvailable
+
+The ccxt library throws this error if it detects any of the following keywords in response:
+
+  - `offline`
+  - `unavailable`
+  - `busy`
+  - `retry`
+  - `wait`
+  - `maintain`
+  - `maintenance`
+  - `maintenancing`
+
+### InvalidNonce
+
+Raised when your nonce is less than the previous nonce used with your keypair, as described in the [Authentication](https://github.com/ccxt/ccxt/wiki/Manual#authentication) section. This type of exception is thrown in these cases (in order of precedence for checking):
+
+  - You are not rate-limiting your requests or sending too many of them too often.
+  - Your API keys are not fresh and new (have been used with some different software or script already).
+  - The same keypair is shared across multiple instances of the exchange class (for example, in a multithreaded environment or in separate processes).
+  - Your system clock is out of synch. System time should be synched with UTC in a non-DST timezone at a rate of once every ten minutes or even more frequently because of the clock drifting. **Enabling time synch in Windows is usually not enough!** You have to set it up with the OS Registry (Google *"time synch frequency"* for your OS).
 
 # Troubleshooting
 

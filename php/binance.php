@@ -306,11 +306,12 @@ class binance extends Exchange {
                 'adjustForTimeDifference' => false, // controls the adjustment logic upon instantiation
             ),
             'exceptions' => array (
+                '-1013' => '\\ccxt\\InvalidOrder', // createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
+                '-1021' => '\\ccxt\\InvalidNonce', // 'your time is ahead of server'
+                '-1100' => '\\ccxt\\InvalidOrder', // createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
                 '-2010' => '\\ccxt\\InsufficientFunds', // createOrder -> 'Account has insufficient balance for requested action.'
                 '-2011' => '\\ccxt\\OrderNotFound', // cancelOrder(1, 'BTC/USDT') -> 'UNKNOWN_ORDER'
-                '-1013' => '\\ccxt\\InvalidOrder', // createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
-                '-1100' => '\\ccxt\\InvalidOrder', // createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
-                '-1021' => '\\ccxt\\InvalidNonce', // 'your time is ahead of server'
+                '-2015' => '\\ccxt\\AuthenticationError', // "Invalid API-key, IP, or permissions for action."
             ),
         ));
     }
@@ -466,6 +467,7 @@ class binance extends Exchange {
         }
         if ($market !== null)
             $symbol = $market['symbol'];
+        $last = $this->safe_float($ticker, 'lastPrice');
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
@@ -478,9 +480,9 @@ class binance extends Exchange {
             'askVolume' => $this->safe_float($ticker, 'askQty'),
             'vwap' => $this->safe_float($ticker, 'weightedAvgPrice'),
             'open' => $this->safe_float($ticker, 'openPrice'),
-            'close' => $this->safe_float($ticker, 'prevClosePrice'),
-            'first' => null,
-            'last' => $this->safe_float($ticker, 'lastPrice'),
+            'close' => $last,
+            'last' => $last,
+            'previousClose' => $this->safe_float($ticker, 'prevClosePrice'), // previous day close
             'change' => $this->safe_float($ticker, 'priceChange'),
             'percentage' => $this->safe_float($ticker, 'priceChangePercent'),
             'average' => null,
