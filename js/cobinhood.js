@@ -520,7 +520,7 @@ module.exports = class cobinhood extends Exchange {
 
             // headers['device_id'] = this.apiKey;
             headers['nonce'] = this.nonce ().toString ();
-            headers['Authorization'] = this.apiKey;
+            headers['authorization'] = this.apiKey;
         }
         if (method === 'GET') {
             query = this.urlencode (query);
