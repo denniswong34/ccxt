@@ -172,7 +172,7 @@ module.exports = class Exchange {
         this.microseconds     = () => now () * 1000 // TODO: utilize performance.now for that purpose
         this.seconds          = () => Math.floor (now () / 1000)
 
-        this.substituteCommonCurrencyCodes = true  // reserved
+        this.substituteCommonCurrencyCodes = false  // reserved
 
         // do not delete this line, it is needed for users to be able to define their own fetchImplementation
         this.fetchImplementation = defaultFetch

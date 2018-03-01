@@ -770,9 +770,10 @@ module.exports = class binance extends Exchange {
 
     commonCurrencyCode (currency) {
         const currencies = {
+            /*
             'YOYO': 'YOYOW',
             'BCC': 'BCH',
-            'NANO': 'XRB',
+            'NANO': 'XRB',*/
         };
         if (currency in currencies)
             return currencies[currency];
