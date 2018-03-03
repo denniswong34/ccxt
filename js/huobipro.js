@@ -26,6 +26,7 @@ module.exports = class huobipro extends Exchange {
                 'fetchOrders': true,
                 'fetchOrder': true,
                 'fetchOpenOrders': true,
+                'fetchDepositAddress': true,
                 'withdraw': true,
                 'fetchDepositAddress': true,
             },
@@ -185,7 +186,7 @@ module.exports = class huobipro extends Exchange {
         let average = undefined;
         if ((typeof open !== 'undefined') && (typeof close !== 'undefined')) {
             change = close - open;
-            average = (open + close) / 2;
+            average = this.sum (open, close) / 2;
             if ((typeof close !== 'undefined') && (close > 0))
                 percentage = (change / open) * 100;
         }
@@ -449,7 +450,7 @@ module.exports = class huobipro extends Exchange {
         let response = await this.privateGetOrderOrdersId (this.extend ({
             'id': id,
         }, params));
-        return this.parseOrder (response);
+        return this.parseOrder (response['data']);
     }
 
     parseOrderStatus (status) {
@@ -536,6 +537,21 @@ module.exports = class huobipro extends Exchange {
 
     async cancelOrder (id, symbol = undefined, params = {}) {
         return await this.privatePostOrderOrdersIdSubmitcancel ({ 'id': id });
+    }
+
+    async fetchDepositAddress (code, params = {}) {
+        await this.loadMarkets ();
+        let currency = this.currency (code);
+        let response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
+            'currency': currency['id'].toLowerCase (),
+        }, params));
+        let address = this.safeString (response, 'data');
+        return {
+            'currency': code,
+            'status': 'ok',
+            'address': address,
+            'info': response,
+        };
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {

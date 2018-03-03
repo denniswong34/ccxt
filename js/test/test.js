@@ -57,6 +57,7 @@ const keysGlobal = 'keys.json'
 const keysLocal = 'keys.local.json'
 
 let keysFile = fs.existsSync (keysLocal) ? keysLocal : keysGlobal
+// eslint-disable-next-line import/no-dynamic-require
 let settings = require ('../../' + keysFile)[exchangeId]
 
 Object.assign (exchange, settings)
@@ -988,4 +989,5 @@ let tryAllProxies = async function (exchange, proxies) {
 
         await tryAllProxies (exchange, proxies)
     }
+
 }) ()

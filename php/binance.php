@@ -98,7 +98,11 @@ class binance extends Exchange {
                         'ticker/allBookTickers',
                         'ticker/price',
                         'ticker/bookTicker',
+                        'exchangeInfo',
                     ),
+                    'put' => array ( 'userDataStream' ),
+                    'post' => array ( 'userDataStream' ),
+                    'delete' => array ( 'userDataStream' ),
                 ),
                 'private' => array (
                     'get' => array (
@@ -115,11 +119,6 @@ class binance extends Exchange {
                     'delete' => array (
                         'order',
                     ),
-                ),
-                'v1' => array (
-                    'put' => array ( 'userDataStream' ),
-                    'post' => array ( 'userDataStream' ),
-                    'delete' => array ( 'userDataStream' ),
                 ),
             ),
             'fees' => array (
@@ -301,6 +300,7 @@ class binance extends Exchange {
             ),
             // exchange-specific options
             'options' => array (
+                'warnOnFetchOpenOrdersWithoutSymbol' => true,
                 'recvWindow' => 5 * 1000, // 5 sec, binance default
                 'timeDifference' => 0, // the difference between system clock and Binance clock
                 'adjustForTimeDifference' => false, // controls the adjustment logic upon instantiation
@@ -460,13 +460,7 @@ class binance extends Exchange {
     public function parse_ticker ($ticker, $market = null) {
         $timestamp = $this->safe_integer($ticker, 'closeTime');
         $iso8601 = ($timestamp === null) ? null : $this->iso8601 ($timestamp);
-        $symbol = $ticker['symbol'];
-        if ($market === null) {
-            if (is_array ($this->markets_by_id) && array_key_exists ($symbol, $this->markets_by_id))
-                $market = $this->markets_by_id[$symbol];
-        }
-        if ($market !== null)
-            $symbol = $market['symbol'];
+        $symbol = $this->find_symbol($this->safe_string($ticker, 'symbol'), $market);
         $last = $this->safe_float($ticker, 'lastPrice');
         return array (
             'symbol' => $symbol,
@@ -632,16 +626,7 @@ class binance extends Exchange {
         $status = $this->safe_value($order, 'status');
         if ($status !== null)
             $status = $this->parse_order_status($status);
-        $symbol = null;
-        if ($market) {
-            $symbol = $market['symbol'];
-        } else {
-            $id = $order['symbol'];
-            if (is_array ($this->markets_by_id) && array_key_exists ($id, $this->markets_by_id)) {
-                $market = $this->markets_by_id[$id];
-                $symbol = $market['symbol'];
-            }
-        }
+        $symbol = $this->find_symbol($this->safe_string($order, 'symbol'), $market);
         $timestamp = null;
         if (is_array ($order) && array_key_exists ('time', $order))
             $timestamp = $order['time'];
@@ -700,10 +685,15 @@ class binance extends Exchange {
             throw new ExchangeError ($this->id . ' fetchOrder requires a $symbol param');
         $this->load_markets();
         $market = $this->market ($symbol);
-        $response = $this->privateGetOrder (array_merge (array (
+        $origClientOrderId = $this->safe_value($params, 'origClientOrderId');
+        $request = array (
             'symbol' => $market['id'],
-            'orderId' => intval ($id),
-        ), $params));
+        );
+        if ($origClientOrderId !== null)
+            $request['origClientOrderId'] = $origClientOrderId;
+        else
+            $request['orderId'] = intval ($id);
+        $response = $this->privateGetOrder (array_merge ($request, $params));
         return $this->parse_order($response, $market);
     }
 
@@ -722,14 +712,17 @@ class binance extends Exchange {
     }
 
     public function fetch_open_orders ($symbol = null, $since = null, $limit = null, $params = array ()) {
-        // if (!$symbol)
-        //     throw new ExchangeError ($this->id . ' fetchOpenOrders requires a $symbol param');
         $this->load_markets();
         $market = null;
         $request = array ();
         if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['symbol'] = $market['id'];
+        } else if ($this->options['warnOnFetchOpenOrdersWithoutSymbol']) {
+            $symbols = $this->symbols;
+            $numSymbols = is_array ($symbols) ? count ($symbols) : 0;
+            $fetchOpenOrdersRateLimit = intval ($numSymbols / 2);
+            throw new ExchangeError ($this->id . ' fetchOpenOrders WARNING => fetching open orders without specifying a $symbol is rate-limited to one call per ' . (string) $fetchOpenOrdersRateLimit . ' seconds. Do not call this method frequently to avoid ban. Set ' . $this->id . '.options["warnOnFetchOpenOrdersWithoutSymbol"] = false to suppress this warning message.');
         }
         $response = $this->privateGetOpenOrders (array_merge ($request, $params));
         return $this->parse_orders($response, $market, $since, $limit);
@@ -801,6 +794,7 @@ class binance extends Exchange {
     }
 
     public function withdraw ($code, $amount, $address, $tag = null, $params = array ()) {
+        $this->load_markets();
         $currency = $this->currency ($code);
         $name = mb_substr ($address, 0, 20);
         $request = array (

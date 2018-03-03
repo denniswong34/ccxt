@@ -73,6 +73,8 @@ module.exports = class Exchange {
                 'cancelOrders': false,
                 'createDepositAddress': false,
                 'createOrder': true,
+                'createMarketOrder': true,
+                'createLimitOrder': true,
                 'deposit': false,
                 'editOrder': 'emulated',
                 'fetchBalance': true,
@@ -168,7 +170,13 @@ module.exports = class Exchange {
 
         this.iso8601          = timestamp => ((typeof timestamp === 'undefined') ? timestamp : new Date (timestamp).toISOString ())
         this.parse8601        = x => Date.parse (((x.indexOf ('+') >= 0) || (x.slice (-1) === 'Z')) ? x : (x + 'Z'))
-        this.parseDate        = x => ((x.indexOf ('GMT') >= 0) ? Date.parse (x) : this.parse8601 (x))
+        this.parseDate        = (x) => {
+            if (typeof x === 'undefined')
+                return x
+            return ((x.indexOf ('GMT') >= 0) ?
+                Date.parse (x) :
+                this.parse8601 (x))
+        }
         this.microseconds     = () => now () * 1000 // TODO: utilize performance.now for that purpose
         this.seconds          = () => Math.floor (now () / 1000)
 
@@ -629,6 +637,34 @@ module.exports = class Exchange {
         throw new ExchangeError (this.id + ' does not have currency code ' + code)
     }
 
+    findMarket (string) {
+
+        if (typeof this.markets === 'undefined')
+            return new ExchangeError (this.id + ' markets not loaded')
+
+        if (typeof string === 'string') {
+
+            if (string in this.markets_by_id)
+                return this.markets_by_id[string]
+
+            if (string in this.markets)
+                return this.markets[string]
+        }
+
+        return string
+    }
+
+    findSymbol (string, market = undefined) {
+
+        if (typeof market === 'undefined')
+            market = this.findMarket (string)
+
+        if (typeof market === 'object')
+            return market['symbol']
+
+        return string
+    }
+
     market (symbol) {
 
         if (typeof this.markets === 'undefined')
@@ -818,7 +854,7 @@ module.exports = class Exchange {
     }
 
     parseOHLCV (ohlcv, market = undefined, timeframe = '1m', since = undefined, limit = undefined) {
-        return ohlcv
+        return Array.isArray (ohlcv) ? ohlcv.slice (0, 6) : ohlcv
     }
 
     parseOHLCVs (ohlcvs, market = undefined, timeframe = '1m', since = undefined, limit = undefined) {

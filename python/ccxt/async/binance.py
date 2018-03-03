@@ -115,7 +115,11 @@ class binance (Exchange):
                         'ticker/allBookTickers',
                         'ticker/price',
                         'ticker/bookTicker',
+                        'exchangeInfo',
                     ],
+                    'put': ['userDataStream'],
+                    'post': ['userDataStream'],
+                    'delete': ['userDataStream'],
                 },
                 'private': {
                     'get': [
@@ -132,11 +136,6 @@ class binance (Exchange):
                     'delete': [
                         'order',
                     ],
-                },
-                'v1': {
-                    'put': ['userDataStream'],
-                    'post': ['userDataStream'],
-                    'delete': ['userDataStream'],
                 },
             },
             'fees': {
@@ -318,6 +317,7 @@ class binance (Exchange):
             },
             # exchange-specific options
             'options': {
+                'warnOnFetchOpenOrdersWithoutSymbol': True,
                 'recvWindow': 5 * 1000,  # 5 sec, binance default
                 'timeDifference': 0,  # the difference between system clock and Binance clock
                 'adjustForTimeDifference': False,  # controls the adjustment logic upon instantiation
@@ -464,12 +464,7 @@ class binance (Exchange):
     def parse_ticker(self, ticker, market=None):
         timestamp = self.safe_integer(ticker, 'closeTime')
         iso8601 = None if (timestamp is None) else self.iso8601(timestamp)
-        symbol = ticker['symbol']
-        if market is None:
-            if symbol in self.markets_by_id:
-                market = self.markets_by_id[symbol]
-        if market is not None:
-            symbol = market['symbol']
+        symbol = self.find_symbol(self.safe_string(ticker, 'symbol'), market)
         last = self.safe_float(ticker, 'lastPrice')
         return {
             'symbol': symbol,
@@ -620,14 +615,7 @@ class binance (Exchange):
         status = self.safe_value(order, 'status')
         if status is not None:
             status = self.parse_order_status(status)
-        symbol = None
-        if market:
-            symbol = market['symbol']
-        else:
-            id = order['symbol']
-            if id in self.markets_by_id:
-                market = self.markets_by_id[id]
-                symbol = market['symbol']
+        symbol = self.find_symbol(self.safe_string(order, 'symbol'), market)
         timestamp = None
         if 'time' in order:
             timestamp = order['time']
@@ -683,10 +671,15 @@ class binance (Exchange):
             raise ExchangeError(self.id + ' fetchOrder requires a symbol param')
         await self.load_markets()
         market = self.market(symbol)
-        response = await self.privateGetOrder(self.extend({
+        origClientOrderId = self.safe_value(params, 'origClientOrderId')
+        request = {
             'symbol': market['id'],
-            'orderId': int(id),
-        }, params))
+        }
+        if origClientOrderId is not None:
+            request['origClientOrderId'] = origClientOrderId
+        else:
+            request['orderId'] = int(id)
+        response = await self.privateGetOrder(self.extend(request, params))
         return self.parse_order(response, market)
 
     async def fetch_orders(self, symbol=None, since=None, limit=None, params={}):
@@ -703,14 +696,17 @@ class binance (Exchange):
         return self.parse_orders(response, market, since, limit)
 
     async def fetch_open_orders(self, symbol=None, since=None, limit=None, params={}):
-        # if not symbol:
-        #     raise ExchangeError(self.id + ' fetchOpenOrders requires a symbol param')
         await self.load_markets()
         market = None
         request = {}
         if symbol is not None:
             market = self.market(symbol)
             request['symbol'] = market['id']
+        elif self.options['warnOnFetchOpenOrdersWithoutSymbol']:
+            symbols = self.symbols
+            numSymbols = len(symbols)
+            fetchOpenOrdersRateLimit = int(numSymbols / 2)
+            raise ExchangeError(self.id + ' fetchOpenOrders WARNING: fetching open orders without specifying a symbol is rate-limited to one call per ' + str(fetchOpenOrdersRateLimit) + ' seconds. Do not call self method frequently to avoid ban. Set ' + self.id + '.options["warnOnFetchOpenOrdersWithoutSymbol"] = False to suppress self warning message.')
         response = await self.privateGetOpenOrders(self.extend(request, params))
         return self.parse_orders(response, market, since, limit)
 
@@ -773,6 +769,7 @@ class binance (Exchange):
         raise ExchangeError(self.id + ' fetchDepositAddress failed: ' + self.last_http_response)
 
     async def withdraw(self, code, amount, address, tag=None, params={}):
+        await self.load_markets()
         currency = self.currency(code)
         name = address[0:20]
         request = {
