@@ -70,6 +70,7 @@ module.exports = class yobit extends liqui {
 
     commonCurrencyCode (currency) {
         let substitutions = {
+            /*
             'AIR': 'AirCoin',
             'ANI': 'ANICoin',
             'ANT': 'AntsCoin',
@@ -94,7 +95,7 @@ module.exports = class yobit extends liqui {
             'PAY': 'EPAY',
             'REP': 'Republicoin',
             'PRS': 'PRE',
-            'VSLICE': 'VSL',
+            'VSLICE': 'VSL',*/
         };
         if (currency in substitutions)
             return substitutions[currency];
@@ -103,6 +104,7 @@ module.exports = class yobit extends liqui {
 
     currencyId (commonCode) {
         let substitutions = {
+            /*
             'AirCoin': 'AIR',
             'ARC': 'ARCX',
             'ATM': 'ATMCHA',
@@ -127,7 +129,7 @@ module.exports = class yobit extends liqui {
             'OMGame': 'OMG',
             'EPAY': 'PAY',
             'Republicoin': 'REP',
-            'VSL': 'VSLICE',
+            'VSL': 'VSLICE',*/
         };
         if (commonCode in substitutions)
             return substitutions[commonCode];
