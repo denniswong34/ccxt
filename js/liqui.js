@@ -597,7 +597,7 @@ module.exports = class liqui extends Exchange {
         await this.loadMarkets ();
         let request = {};
         let market = undefined;
-        if (symbol) {
+        if (typeof symbol !== 'undefined') {
             let market = this.market (symbol);
             request['pair'] = market['id'];
         }
@@ -607,7 +607,7 @@ module.exports = class liqui extends Exchange {
         if ('return' in response)
             openOrders = this.parseOrders (response['return'], market);
         let allOrders = this.updateCachedOrders (openOrders, symbol);
-        let result = this.filterOrdersBySymbol (allOrders, symbol);
+        let result = this.filterBySymbol (allOrders, symbol);
         return this.filterBySinceLimit (result, since, limit);
     }
 

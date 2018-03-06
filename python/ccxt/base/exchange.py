@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.1271'
+__version__ = '1.11.10'
 
 # -----------------------------------------------------------------------------
 
@@ -225,7 +225,6 @@ class Exchange(object):
             'delay': 1.0,
             'capacity': 1.0,
             'defaultCost': 1.0,
-            'maxCapacity': 1000,
         }, getattr(self, 'tokenBucket') if hasattr(self, 'tokenBucket') else {})
 
         self.session = self.session if self.session else Session()
@@ -1086,13 +1085,10 @@ class Exchange(object):
             array = array[0:limit]
         return array
 
-    def filter_orders_by_symbol(self, orders, symbol=None):
+    def filter_by_symbol(self, array, symbol=None):
         if symbol:
-            grouped = self.group_by(orders, 'symbol')
-            if symbol in grouped:
-                return grouped[symbol]
-            return []
-        return orders
+            return [entry for entry in array if entry['symbol'] == symbol]
+        return array
 
     def currency(self, code):
         if not self.currencies:

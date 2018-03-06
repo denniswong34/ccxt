@@ -425,7 +425,7 @@ module.exports = class bittrex extends Exchange {
         }
         let response = await this.marketGetOpenorders (this.extend (request, params));
         let orders = this.parseOrders (response['result'], market, since, limit);
-        return this.filterOrdersBySymbol (orders, symbol);
+        return this.filterBySymbol (orders, symbol);
     }
 
     async createOrder (symbol, type, side, amount, price = undefined, params = {}) {
@@ -585,7 +585,7 @@ module.exports = class bittrex extends Exchange {
         let response = await this.accountGetOrderhistory (this.extend (request, params));
         let orders = this.parseOrders (response['result'], market, since, limit);
         if (symbol)
-            return this.filterOrdersBySymbol (orders, symbol);
+            return this.filterBySymbol (orders, symbol);
         return orders;
     }
 
