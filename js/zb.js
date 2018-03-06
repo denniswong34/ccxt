@@ -108,6 +108,17 @@ module.exports = class zb extends Exchange {
                         'order',
                         'cancelOrder',
                         'withdraw',
+                        'getOrder',
+                        'getOrders',
+                        'getOrdersNew',
+                        'getOrdersIgnoreTradeType',
+                        'getUnfinishedOrdersIgnoreTradeType',
+                        'getAccountInfo',
+                        'getChargeRecord',
+                        'getCnyWithdrawRecord',
+                        'getCnyChargeRecord',
+                        'getWithdrawRecord',
+                        'getWithdrawAddress',
                     ],
                 },
             },
@@ -198,7 +209,7 @@ module.exports = class zb extends Exchange {
 
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
-        let response = await this.privatePostGetAccountInfo (params);
+        let response = await this.privateGetGetAccountInfo (params);
         // todo: use this somehow
         // let permissions = response['result']['base'];
         let balances = response['result']['coins'];
