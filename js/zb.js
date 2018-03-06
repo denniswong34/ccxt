@@ -198,7 +198,7 @@ module.exports = class zb extends Exchange {
 
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
-        let response = await this.privateGetGetAccountInfo (params);
+        let response = await this.privatePostGetAccountInfo (params);
         // todo: use this somehow
         // let permissions = response['result']['base'];
         let balances = response['result']['coins'];
