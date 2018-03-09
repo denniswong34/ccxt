@@ -58,6 +58,7 @@ const commonRegexes = [
     [ /\.parseOHLCV\s/g, '.parse_ohlcv'],
     [ /\.parseDate\s/g, '.parse_date'],
     [ /\.parseTicker\s/g, '.parse_ticker'],
+    [ /\.parseTimeframe\s/g, '.parse_timeframe'],
     [ /\.parseTradesData\s/g, '.parse_trades_data'],
     [ /\.parseTrades\s/g, '.parse_trades'],
     [ /\.parseTrade\s/g, '.parse_trade'],
@@ -116,6 +117,7 @@ const commonRegexes = [
     [ /\.throwExceptionOnError\s/g, '.throw_exception_on_error'],
     [ /\.handleErrors\s/g, '.handle_errors'],
     [ /\.checkRequiredCredentials\s/g, '.check_required_credentials'],
+    [ /\.checkAddress\s/g, '.check_address'],
 ]
 
 // ----------------------------------------------------------------------------

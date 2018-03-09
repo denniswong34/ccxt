@@ -117,6 +117,18 @@ class yobit extends liqui {
         return $commonCode;
     }
 
+    public function parse_order_status ($status) {
+        $statuses = array (
+            '0' => 'open',
+            '1' => 'closed',
+            '2' => 'canceled',
+            '3' => 'open', // or partially-filled and closed? https://github.com/ccxt/ccxt/issues/1594
+        );
+        if (is_array ($statuses) && array_key_exists ($status, $statuses))
+            return $statuses[$status];
+        return $status;
+    }
+
     public function fetch_balance ($params = array ()) {
         $this->load_markets();
         $response = $this->privatePostGetInfo ();
@@ -153,9 +165,11 @@ class yobit extends liqui {
         $response = $this->fetch_deposit_address ($currency, array_merge (array (
             'need_new' => 1,
         ), $params));
+        $address = $this->safe_string($response, 'address');
+        $this->check_address($address);
         return array (
             'currency' => $currency,
-            'address' => $response['address'],
+            'address' => $address,
             'status' => 'ok',
             'info' => $response['info'],
         );
@@ -169,6 +183,7 @@ class yobit extends liqui {
         );
         $response = $this->privatePostGetDepositAddress (array_merge ($request, $params));
         $address = $this->safe_string($response['return'], 'address');
+        $this->check_address($address);
         return array (
             'currency' => $currency,
             'address' => $address,
@@ -178,6 +193,7 @@ class yobit extends liqui {
     }
 
     public function withdraw ($currency, $amount, $address, $tag = null, $params = array ()) {
+        $this->check_address($address);
         $this->load_markets();
         $response = $this->privatePostWithdrawCoinsToAddress (array_merge (array (
             'coinName' => $currency,

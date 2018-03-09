@@ -118,6 +118,17 @@ class yobit (liqui):
             return substitutions[commonCode]
         return commonCode
 
+    def parse_order_status(self, status):
+        statuses = {
+            '0': 'open',
+            '1': 'closed',
+            '2': 'canceled',
+            '3': 'open',  # or partially-filled and closed? https://github.com/ccxt/ccxt/issues/1594
+        }
+        if status in statuses:
+            return statuses[status]
+        return status
+
     async def fetch_balance(self, params={}):
         await self.load_markets()
         response = await self.privatePostGetInfo()
@@ -149,9 +160,11 @@ class yobit (liqui):
         response = await self.fetch_deposit_address(currency, self.extend({
             'need_new': 1,
         }, params))
+        address = self.safe_string(response, 'address')
+        self.check_address(address)
         return {
             'currency': currency,
-            'address': response['address'],
+            'address': address,
             'status': 'ok',
             'info': response['info'],
         }
@@ -164,6 +177,7 @@ class yobit (liqui):
         }
         response = await self.privatePostGetDepositAddress(self.extend(request, params))
         address = self.safe_string(response['return'], 'address')
+        self.check_address(address)
         return {
             'currency': currency,
             'address': address,
@@ -172,6 +186,7 @@ class yobit (liqui):
         }
 
     async def withdraw(self, currency, amount, address, tag=None, params={}):
+        self.check_address(address)
         await self.load_markets()
         response = await self.privatePostWithdrawCoinsToAddress(self.extend({
             'coinName': currency,

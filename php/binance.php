@@ -316,15 +316,14 @@ class binance extends Exchange {
         ));
     }
 
-    public function milliseconds () {
-        return parent::milliseconds () - $this->options['timeDifference'];
+    public function nonce () {
+        return $this->milliseconds () - $this->options['timeDifference'];
     }
 
     public function load_time_difference () {
-        $before = $this->milliseconds ();
         $response = $this->publicGetTime ();
         $after = $this->milliseconds ();
-        $this->options['timeDifference'] = intval (($before . $after) / 2 - $response['serverTime']);
+        $this->options['timeDifference'] = intval ($after - $response['serverTime']);
         return $this->options['timeDifference'];
     }
 
@@ -783,7 +782,7 @@ class binance extends Exchange {
                 $tag = $this->safe_string($response, 'addressTag');
                 return array (
                     'currency' => $code,
-                    'address' => $address,
+                    'address' => $this->check_address($address),
                     'tag' => $tag,
                     'status' => 'ok',
                     'info' => $response,
@@ -794,6 +793,7 @@ class binance extends Exchange {
     }
 
     public function withdraw ($code, $amount, $address, $tag = null, $params = array ()) {
+        $this->check_address($address);
         $this->load_markets();
         $currency = $this->currency ($code);
         $name = mb_substr ($address, 0, 20);
@@ -827,7 +827,7 @@ class binance extends Exchange {
         } else if (($api === 'private') || ($api === 'wapi')) {
             $this->check_required_credentials();
             $query = $this->urlencode (array_merge (array (
-                'timestamp' => $this->milliseconds (),
+                'timestamp' => $this->nonce (),
                 'recvWindow' => $this->options['recvWindow'],
             ), $params));
             $signature = $this->hmac ($this->encode ($query), $this->encode ($this->secret));
@@ -876,7 +876,7 @@ class binance extends Exchange {
             if (strlen ($body) > 0) {
                 if ($body[0] === '{') {
                     $response = json_decode ($body, $as_associative_array = true);
-                    $error = $this->safe_value($response, 'code');
+                    $error = $this->safe_string($response, 'code');
                     if ($error !== null) {
                         $exceptions = $this->exceptions;
                         if (is_array ($exceptions) && array_key_exists ($error, $exceptions)) {

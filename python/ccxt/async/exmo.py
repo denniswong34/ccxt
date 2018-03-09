@@ -270,14 +270,18 @@ class exmo (Exchange):
 
     async def create_order(self, symbol, type, side, amount, price=None, params={}):
         await self.load_markets()
-        prefix = 'market_' if (type == 'market') else ''
-        order = {
+        orderType = ''
+        if type == 'market':
+            price = '0'
+            orderType = type + '_'
+        orderType += side
+        request = {
             'pair': self.market_id(symbol),
             'quantity': amount,
+            'type': orderType,
             'price': price,
-            'type': prefix + side,
         }
-        response = await self.privatePostOrderCreate(self.extend(order, params))
+        response = await self.privatePostOrderCreate(self.extend(request, params))
         return {
             'info': response,
             'id': str(response['order_id']),
@@ -433,6 +437,7 @@ class exmo (Exchange):
         }
 
     async def withdraw(self, currency, amount, address, tag=None, params={}):
+        self.check_address(address)
         await self.load_markets()
         request = {
             'amount': amount,

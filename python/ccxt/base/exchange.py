@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.11.10'
+__version__ = '1.11.53'
 
 # -----------------------------------------------------------------------------
 
@@ -14,6 +14,7 @@ from ccxt.base.errors import AuthenticationError
 from ccxt.base.errors import DDoSProtection
 from ccxt.base.errors import RequestTimeout
 from ccxt.base.errors import ExchangeNotAvailable
+from ccxt.base.errors import InvalidAddress
 
 # -----------------------------------------------------------------------------
 
@@ -167,6 +168,7 @@ class Exchange(object):
         'withdraw': False,
     }
 
+    minFundingAddressLength = 10  # used in check_address
     substituteCommonCurrencyCodes = True
     lastRestRequestTimestamp = 0
     lastRestPollTimestamp = 0
@@ -397,7 +399,7 @@ class Exchange(object):
             else:
                 return response
         except ValueError as e:  # ValueError == JsonDecodeError
-            ddos_protection = re.search('(cloudflare|incapsula)', response, flags=re.IGNORECASE)
+            ddos_protection = re.search('(cloudflare|incapsula|overload|ddos)', response, flags=re.IGNORECASE)
             exchange_not_available = re.search('(offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing)', response, flags=re.IGNORECASE)
             if ddos_protection:
                 self.raise_error(DDoSProtection, method, url, None, response)
@@ -771,6 +773,14 @@ class Exchange(object):
             if self.requiredCredentials[key] and not getattr(self, key):
                 self.raise_error(AuthenticationError, details='requires `' + key + '`')
 
+    def check_address(self, address):
+        """Checks an address is not the same character repeated or an empty sequence"""
+        if address is None:
+            self.raise_error(InvalidAddress, details='address is None')
+        if all(letter == address[0] for letter in address) or len(address) < self.minFundingAddressLength or ' ' in address:
+            self.raise_error(InvalidAddress, details='address is invalid or has less than ' + str(self.minFundingAddressLength) + ' characters: "' + str(address) + '"')
+        return address
+
     def account(self):
         return {
             'free': 0.0,
@@ -990,8 +1000,8 @@ class Exchange(object):
     def parse_order_book(self, orderbook, timestamp=None, bids_key='bids', asks_key='asks', price_key=0, amount_key=1):
         timestamp = timestamp or self.milliseconds()
         return {
-            'bids': self.parse_bids_asks(orderbook[bids_key], price_key, amount_key) if (bids_key in orderbook) and isinstance(orderbook[bids_key], list) else [],
-            'asks': self.parse_bids_asks(orderbook[asks_key], price_key, amount_key) if (asks_key in orderbook) and isinstance(orderbook[asks_key], list) else [],
+            'bids': self.sort_by(self.parse_bids_asks(orderbook[bids_key], price_key, amount_key) if (bids_key in orderbook) and isinstance(orderbook[bids_key], list) else [], 0, True),
+            'asks': self.sort_by(self.parse_bids_asks(orderbook[asks_key], price_key, amount_key) if (asks_key in orderbook) and isinstance(orderbook[asks_key], list) else [], 0),
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
         }
@@ -1058,8 +1068,12 @@ class Exchange(object):
     def parse_timeframe(self, timeframe):
         amount = int(timeframe[0:-1])
         unit = timeframe[-1]
-        if 'M' in unit:
+        if 'y' in unit:
+            scale = 60 * 60 * 24 * 365
+        elif 'M' in unit:
             scale = 60 * 60 * 24 * 30
+        elif 'w' in unit:
+            scale = 60 * 60 * 24 * 7
         elif 'd' in unit:
             scale = 60 * 60 * 24
         elif 'h' in unit:
@@ -1071,16 +1085,29 @@ class Exchange(object):
     def parse_trades(self, trades, market=None, since=None, limit=None):
         array = self.to_array(trades)
         array = [self.parse_trade(trade, market) for trade in array]
-        return self.filter_by_since_limit(array, since, limit)
+        array = self.sort_by(array, 'timestamp')
+        symbol = market['symbol'] if market else None
+        return self.filter_by_symbol_since_limit(array, symbol, since, limit)
 
     def parse_orders(self, orders, market=None, since=None, limit=None):
         array = self.to_array(orders)
         array = [self.parse_order(order, market) for order in array]
-        return self.filter_by_since_limit(array, since, limit)
+        array = self.sort_by(array, 'timestamp')
+        symbol = market['symbol'] if market else None
+        return self.filter_by_symbol_since_limit(array, symbol, since, limit)
+
+    def filter_by_symbol_since_limit(self, array, symbol=None, since=None, limit=None):
+        if symbol:
+            array = [entry for entry in array if entry['symbol'] == symbol]
+        if since:
+            array = [entry for entry in array if entry['timestamp'] >= since]
+        if limit:
+            array = array[0:limit]
+        return array
 
     def filter_by_since_limit(self, array, since=None, limit=None):
         if since:
-            array = [entry for entry in array if entry['timestamp'] > since]
+            array = [entry for entry in array if entry['timestamp'] >= since]
         if limit:
             array = array[0:limit]
         return array
