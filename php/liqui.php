@@ -432,16 +432,23 @@ class liqui extends Exchange {
         return $response;
     }
 
+    public function parse_order_status ($status) {
+        $statuses = array (
+            '0' => 'open',
+            '1' => 'closed',
+            '2' => 'canceled',
+            '3' => 'canceled', // or partially-filled and still open? https://github.com/ccxt/ccxt/issues/1594
+        );
+        if (is_array ($statuses) && array_key_exists ($status, $statuses))
+            return $statuses[$status];
+        return $status;
+    }
+
     public function parse_order ($order, $market = null) {
         $id = (string) $order['id'];
-        $status = $this->safe_integer($order, 'status');
-        if ($status === 0) {
-            $status = 'open';
-        } else if ($status === 1) {
-            $status = 'closed';
-        } else if (($status === 2) || ($status === 3)) {
-            $status = 'canceled';
-        }
+        $status = $this->safe_string($order, 'status');
+        if ($status !== 'null')
+            $status = $this->parse_order_status($status);
         $timestamp = intval ($order['timestamp_created']) * 1000;
         $symbol = null;
         if (!$market)
@@ -613,6 +620,7 @@ class liqui extends Exchange {
     }
 
     public function withdraw ($currency, $amount, $address, $tag = null, $params = array ()) {
+        $this->check_address($address);
         $this->load_markets();
         $response = $this->privatePostWithdrawCoin (array_merge (array (
             'coinName' => $currency,

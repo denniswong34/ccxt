@@ -286,14 +286,19 @@ module.exports = class exmo extends Exchange {
 
     async createOrder (symbol, type, side, amount, price = undefined, params = {}) {
         await this.loadMarkets ();
-        let prefix = (type === 'market') ? 'market_' : '';
-        let order = {
+        let orderType = '';
+        if (type === 'market') {
+            price = '0';
+            orderType = type + '_';
+        }
+        orderType += side;
+        let request = {
             'pair': this.marketId (symbol),
             'quantity': amount,
+            'type': orderType,
             'price': price,
-            'type': prefix + side,
         };
-        let response = await this.privatePostOrderCreate (this.extend (order, params));
+        let response = await this.privatePostOrderCreate (this.extend (request, params));
         return {
             'info': response,
             'id': response['order_id'].toString (),
@@ -469,6 +474,7 @@ module.exports = class exmo extends Exchange {
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        this.checkAddress (address);
         await this.loadMarkets ();
         let request = {
             'amount': amount,

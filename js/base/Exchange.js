@@ -12,6 +12,7 @@ const {
     , deepExtend
     , extend
     , flatten
+    , unique
     , indexBy
     , sortBy
     , groupBy
@@ -29,6 +30,7 @@ const {
 
 const {
     ExchangeError
+    , InvalidAddress
     , NotSupported
     , AuthenticationError
     , DDoSProtection
@@ -179,7 +181,7 @@ module.exports = class Exchange {
         }
         this.microseconds     = () => now () * 1000 // TODO: utilize performance.now for that purpose
         this.seconds          = () => Math.floor (now () / 1000)
-
+        this.minFundingAddressLength = 10 // used in checkAddress
         this.substituteCommonCurrencyCodes = false  // reserved
 
         // do not delete this line, it is needed for users to be able to define their own fetchImplementation
@@ -266,6 +268,18 @@ module.exports = class Exchange {
             if (this.requiredCredentials[key] && !this[key])
                 throw new AuthenticationError (this.id + ' requires `' + key + '`')
         })
+    }
+
+    checkAddress (address) {
+
+        if (typeof address === 'undefined')
+            throw new InvalidAddress (this.id + ' address is undefined')
+
+        // check the address is not the same letter like 'aaaaa' nor too short nor has a space
+        if ((unique (address).length < 2) || address.length < this.minFundingAddressLength || address.includes (' '))
+            throw new InvalidAddress (this.id + ' address is invalid or has less than ' + this.minFundingAddressLength.toString () + ' characters: "' + address.toString () + '"')
+
+        return address
     }
 
     initRestRateLimiter () {
@@ -405,7 +419,7 @@ module.exports = class Exchange {
                 title = match[1].trim ();
 
             let maintenance = responseBody.match (/offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing/i)
-            let ddosProtection = responseBody.match (/cloudflare|incapsula|overload/i)
+            let ddosProtection = responseBody.match (/cloudflare|incapsula|overload|ddos/i)
 
             if (e instanceof SyntaxError) {
 
@@ -851,14 +865,14 @@ module.exports = class Exchange {
 
     parseTrades (trades, market = undefined, since = undefined, limit = undefined) {
         let result = Object.values (trades || []).map (trade => this.parseTrade (trade, market))
-        result = sortBy (result, 'timestamp', true)
+        result = sortBy (result, 'timestamp')
         let symbol = (typeof market !== 'undefined') ? market['symbol'] : undefined
         return this.filterBySymbolSinceLimit (result, symbol, since, limit)
     }
 
     parseOrders (orders, market = undefined, since = undefined, limit = undefined) {
         let result = Object.values (orders).map (order => this.parseOrder (order, market))
-        result = sortBy (result, 'timestamp', true)
+        result = sortBy (result, 'timestamp')
         let symbol = (typeof market !== 'undefined') ? market['symbol'] : undefined
         return this.filterBySymbolSinceLimit (result, symbol, since, limit)
     }

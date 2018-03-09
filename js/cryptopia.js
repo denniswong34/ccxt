@@ -86,6 +86,7 @@ module.exports = class cryptopia extends Exchange {
         const currencies = {
             'ACC': 'AdCoin',
             'BAT': 'BatCoin',
+            'BLZ': 'BlazeCoin',
             'CC': 'CCX',
             'CMT': 'Comet',
             'FCN': 'Facilecoin',
@@ -107,6 +108,7 @@ module.exports = class cryptopia extends Exchange {
         const currencies = {
             'AdCoin': 'ACC',
             'BatCoin': 'BAT',
+            'BlazeCoin': 'BLZ',
             'CCX': 'CC',
             'Comet': 'CMT',
             'Cubits': 'QBT',
@@ -623,6 +625,7 @@ module.exports = class cryptopia extends Exchange {
         let address = this.safeString (response['Data'], 'BaseAddress');
         if (!address)
             address = this.safeString (response['Data'], 'Address');
+        this.checkAddress (address);
         return {
             'currency': currency,
             'address': address,
@@ -632,6 +635,7 @@ module.exports = class cryptopia extends Exchange {
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        this.checkAddress (address);
         let currencyId = this.currencyId (currency);
         let request = {
             'Currency': currencyId,

@@ -4,6 +4,7 @@
 # https://github.com/ccxt/ccxt/blob/master/CONTRIBUTING.md#how-to-contribute-code
 
 from ccxt.base.exchange import Exchange
+import json
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import AuthenticationError
 from ccxt.base.errors import InsufficientFunds
@@ -22,7 +23,6 @@ class bitz (Exchange):
             'rateLimit': 1000,
             'version': 'v1',
             'has': {
-                'fetchBalance': False,  # so far the only exchange that has createOrder but not fetchBalance %)
                 'fetchTickers': True,
                 'fetchOHLCV': True,
                 'fetchOpenOrders': True,
@@ -54,6 +54,7 @@ class bitz (Exchange):
                 },
                 'private': {
                     'post': [
+                        'balances',
                         'tradeAdd',
                         'tradeCancel',
                         'openOrders',
@@ -137,8 +138,9 @@ class bitz (Exchange):
         for i in range(0, len(ids)):
             id = ids[i]
             market = markets[id]
-            idUpper = id.upper()
-            base, quote = idUpper.split('_')
+            baseId, quoteId = id.split('_')
+            base = baseId.upper()
+            quote = quoteId.upper()
             base = self.common_currency_code(base)
             quote = self.common_currency_code(quote)
             symbol = base + '/' + quote
@@ -147,10 +149,33 @@ class bitz (Exchange):
                 'symbol': symbol,
                 'base': base,
                 'quote': quote,
+                'baseId': baseId,
+                'quoteId': quoteId,
                 'active': True,
                 'info': market,
             })
         return result
+
+    def fetch_balance(self, params={}):
+        self.load_markets()
+        response = self.privatePostBalances(params)
+        data = response['data']
+        balances = self.omit(data, 'uid')
+        result = {'info': response}
+        keys = list(balances.keys())
+        for i in range(0, len(keys)):
+            currency = keys[i]
+            balance = float(balances[currency])
+            if currency in self.currencies_by_id:
+                currency = self.currencies_by_id[currency]['code']
+            else:
+                currency = currency.upper()
+            account = self.account()
+            account['free'] = balance
+            account['used'] = None
+            account['total'] = balance
+            result[currency] = account
+        return self.parse_balance(result)
 
     def parse_ticker(self, ticker, market=None):
         timestamp = ticker['date'] * 1000
@@ -247,7 +272,7 @@ class bitz (Exchange):
             'coin': market['id'],
             'type': self.timeframes[timeframe],
         }, params))
-        ohlcv = self.unjson(response['data']['datas']['data'])
+        ohlcv = json.loads(response['data']['datas']['data'])
         return self.parse_ohlcvs(ohlcv, market, timeframe, since, limit)
 
     def parse_order(self, order, market=None):

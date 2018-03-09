@@ -140,6 +140,18 @@ module.exports = class yobit extends liqui {
         return commonCode;
     }
 
+    parseOrderStatus (status) {
+        let statuses = {
+            '0': 'open',
+            '1': 'closed',
+            '2': 'canceled',
+            '3': 'open', // or partially-filled and closed? https://github.com/ccxt/ccxt/issues/1594
+        };
+        if (status in statuses)
+            return statuses[status];
+        return status;
+    }
+
     async fetchBalance (params = {}) {
         await this.loadMarkets ();
         let response = await this.privatePostGetInfo ();
@@ -176,9 +188,11 @@ module.exports = class yobit extends liqui {
         let response = await this.fetchDepositAddress (currency, this.extend ({
             'need_new': 1,
         }, params));
+        let address = this.safeString (response, 'address');
+        this.checkAddress (address);
         return {
             'currency': currency,
-            'address': response['address'],
+            'address': address,
             'status': 'ok',
             'info': response['info'],
         };
@@ -198,6 +212,7 @@ module.exports = class yobit extends liqui {
         };
         let response = await this.privatePostGetDepositAddress (this.extend (request, params));
         let address = this.safeString (response['return'], 'address');
+        this.checkAddress (address);
         return {
             'currency': currency,
             'address': address,
@@ -207,6 +222,7 @@ module.exports = class yobit extends liqui {
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        this.checkAddress (address);
         await this.loadMarkets ();
         let response = await this.privatePostWithdrawCoinsToAddress (this.extend ({
             'coinName': currency,

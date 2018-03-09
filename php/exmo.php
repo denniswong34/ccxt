@@ -285,14 +285,19 @@ class exmo extends Exchange {
 
     public function create_order ($symbol, $type, $side, $amount, $price = null, $params = array ()) {
         $this->load_markets();
-        $prefix = ($type === 'market') ? 'market_' : '';
-        $order = array (
+        $orderType = '';
+        if ($type === 'market') {
+            $price = '0';
+            $orderType = $type . '_';
+        }
+        $orderType .= $side;
+        $request = array (
             'pair' => $this->market_id($symbol),
             'quantity' => $amount,
+            'type' => $orderType,
             'price' => $price,
-            'type' => $prefix . $side,
         );
-        $response = $this->privatePostOrderCreate (array_merge ($order, $params));
+        $response = $this->privatePostOrderCreate (array_merge ($request, $params));
         return array (
             'info' => $response,
             'id' => (string) $response['order_id'],
@@ -468,6 +473,7 @@ class exmo extends Exchange {
     }
 
     public function withdraw ($currency, $amount, $address, $tag = null, $params = array ()) {
+        $this->check_address($address);
         $this->load_markets();
         $request = array (
             'amount' => $amount,

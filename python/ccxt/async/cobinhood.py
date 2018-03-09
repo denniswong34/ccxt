@@ -4,6 +4,7 @@
 # https://github.com/ccxt/ccxt/blob/master/CONTRIBUTING.md#how-to-contribute-code
 
 from ccxt.async.base.exchange import Exchange
+import json
 from ccxt.base.errors import ExchangeError
 
 
@@ -16,6 +17,7 @@ class cobinhood (Exchange):
             'countries': 'TW',
             'rateLimit': 1000 / 10,
             'has': {
+                'fetchCurrencies': True,
                 'fetchTickers': True,
                 'fetchOHLCV': True,
                 'fetchOpenOrders': True,
@@ -130,28 +132,48 @@ class cobinhood (Exchange):
 
     async def fetch_currencies(self, params={}):
         response = await self.publicGetMarketCurrencies(params)
-        currencies = response['result']
+        currencies = response['result']['currencies']
         result = {}
         for i in range(0, len(currencies)):
             currency = currencies[i]
             id = currency['currency']
             code = self.common_currency_code(id)
+            fundingNotFrozen = not currency['funding_frozen']
+            active = currency['is_active'] and fundingNotFrozen
+            minUnit = float(currency['min_unit'])
             result[code] = {
                 'id': id,
                 'code': code,
                 'name': currency['name'],
-                'active': True,
+                'active': active,
                 'status': 'ok',
                 'fiat': False,
-                'lot': float(currency['min_unit']),
-                'precision': 8,
+                'precision': self.precision_from_string(currency['min_unit']),
+                'limits': {
+                    'amount': {
+                        'min': minUnit,
+                        'max': None,
+                    },
+                    'price': {
+                        'min': minUnit,
+                        'max': None,
+                    },
+                    'deposit': {
+                        'min': minUnit,
+                        'max': None,
+                    },
+                    'withdraw': {
+                        'min': minUnit,
+                        'max': None,
+                    },
+                },
                 'funding': {
                     'withdraw': {
-                        'active': True,
+                        'active': fundingNotFrozen,
                         'fee': float(currency['withdrawal_fee']),
                     },
                     'deposit': {
-                        'active': True,
+                        'active': fundingNotFrozen,
                         'fee': float(currency['deposit_fee']),
                     },
                 },
@@ -166,19 +188,35 @@ class cobinhood (Exchange):
         for i in range(0, len(markets)):
             market = markets[i]
             id = market['id']
-            base, quote = id.split('-')
+            baseId, quoteId = id.split('-')
+            base = self.common_currency_code(baseId)
+            quote = self.common_currency_code(quoteId)
             symbol = base + '/' + quote
+            precision = {
+                'amount': 8,
+                'price': self.precision_from_string(market['quote_increment']),
+            }
             result.append({
                 'id': id,
                 'symbol': symbol,
-                'base': self.common_currency_code(base),
-                'quote': self.common_currency_code(quote),
-                'active': True,
-                'lot': float(market['quote_increment']),
+                'base': base,
+                'quote': quote,
+                'baseId': baseId,
+                'quoteId': quoteId,
+                'active': market['is_active'],
+                'precision': precision,
                 'limits': {
                     'amount': {
                         'min': float(market['base_min_size']),
                         'max': float(market['base_max_size']),
+                    },
+                    'price': {
+                        'min': None,
+                        'max': None,
+                    },
+                    'cost': {
+                        'min': None,
+                        'max': None,
                     },
                 },
                 'info': market,
@@ -393,8 +431,7 @@ class cobinhood (Exchange):
         side = 'ask' if (side == 'sell') else 'bid'
         request = {
             'trading_pair_id': market['id'],
-            # market, limit, stop, stop_limit
-            'type': type,
+            'type': type,  # market, limit, stop, stop_limit
             'side': side,
             'size': self.amount_to_string(symbol, amount),
         }
@@ -442,8 +479,7 @@ class cobinhood (Exchange):
             'currency': currency['id'],
         })
         address = self.safe_string(response['result']['deposit_address'], 'address')
-        if not address:
-            raise ExchangeError(self.id + ' createDepositAddress failed: ' + self.last_http_response)
+        self.check_address(address)
         return {
             'currency': code,
             'address': address,
@@ -458,8 +494,7 @@ class cobinhood (Exchange):
             'currency': currency['id'],
         }, params))
         address = self.safe_string(response['result']['deposit_addresses'], 'address')
-        if not address:
-            raise ExchangeError(self.id + ' fetchDepositAddress failed: ' + self.last_http_response)
+        self.check_address(address)
         return {
             'currency': code,
             'address': address,
@@ -503,6 +538,6 @@ class cobinhood (Exchange):
             return
         if body[0] != '{':
             raise ExchangeError(self.id + ' ' + body)
-        response = self.unjson(body)
+        response = json.loads(body)
         message = self.safe_value(response['error'], 'error_code')
         raise ExchangeError(self.id + ' ' + message)

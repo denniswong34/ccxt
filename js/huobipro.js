@@ -339,7 +339,17 @@ module.exports = class huobipro extends Exchange {
             'symbol': market['id'],
             'size': 2000,
         }, params));
-        return this.parseTradesData (response['data'], market, since, limit);
+        let data = response['data'];
+        let result = [];
+        for (let i = 0; i < data.length; i++) {
+            let trades = data[i]['data'];
+            for (let j = 0; j < trades.length; j++) {
+                let trade = this.parseTrade (trades[j], market);
+                result.push (trade);
+            }
+        }
+        result = this.sortBy (result, 'timestamp');
+        return this.filterBySymbolSinceLimit (result, symbol, since, limit);
     }
 
     parseOHLCV (ohlcv, market = undefined, timeframe = '1m', since = undefined, limit = undefined) {
@@ -546,6 +556,7 @@ module.exports = class huobipro extends Exchange {
             'currency': currency['id'].toLowerCase (),
         }, params));
         let address = this.safeString (response, 'data');
+        this.checkAddress (address);
         return {
             'currency': code,
             'status': 'ok',
@@ -573,6 +584,7 @@ module.exports = class huobipro extends Exchange {
     }
 
     async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        this.checkAddress (address);
         let request = {
             'address': address, // only supports existing addresses in your withdraw address list
             'amount': amount,
