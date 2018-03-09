@@ -640,8 +640,8 @@ module.exports = class bittrex extends Exchange {
             request['paymentid'] = tag;
         let response = await this.accountGetWithdraw (this.extend (request, params));
         let id = undefined;
-        if ('result' in response) {
-            if ('uuid' in response['result'])
+        if (response['result']) {
+            if (response['result']['uuid'])
                 id = response['result']['uuid'];
         }
         return {
