@@ -68,6 +68,7 @@ module.exports = class bitstamp extends Exchange {
                         'xrp_address/',
                         'transfer-to-main/',
                         'transfer-from-main/',
+                        'withdrawal-requests/',
                         'withdrawal/open/',
                         'withdrawal/status/',
                         'withdrawal/cancel/',
@@ -243,9 +244,12 @@ module.exports = class bitstamp extends Exchange {
             'tid',
             'type',
             'order_id',
+            'side',
         ]);
         let currencyIds = Object.keys (trade);
         let numCurrencyIds = currencyIds.length;
+        if (numCurrencyIds > 2)
+            throw new ExchangeError (this.id + ' getMarketFromTrade too many keys: ' + this.json (currencyIds) + ' in the trade: ' + this.json (trade));
         if (numCurrencyIds === 2) {
             let marketId = currencyIds[0] + currencyIds[1];
             if (marketId in this.markets_by_id)
