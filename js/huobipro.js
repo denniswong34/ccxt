@@ -75,6 +75,7 @@ module.exports = class huobipro extends Exchange {
                         'order/orders', // 查询当前委托、历史委托
                         'order/matchresults', // 查询当前成交、历史成交
                         'dw/withdraw-virtual/addresses', // 查询虚拟币提现地址
+                        'dw/withdraw-virtual/fee',
                         'dw/deposit-virtual/addresses',
                         'dw/deposit-virtual/sharedAddressWithTag',
                     ],
@@ -127,6 +128,17 @@ module.exports = class huobipro extends Exchange {
             let lot = Math.pow (10, -precision['amount']);
             let maker = (base === 'OMG') ? 0 : 0.2 / 100;
             let taker = (base === 'OMG') ? 0 : 0.2 / 100;
+
+            let withdrawFee;
+            try{
+                response = await this.privateGetDwWithdrawVirtualFee ({'currency': baseId}, {});
+                if(response['status'] == 'ok'){
+                    withdrawFee = response['data'];
+                }
+            } catch(e) {
+                //console.log(e);
+            }
+
             result.push ({
                 'id': id,
                 'symbol': symbol,
@@ -136,6 +148,7 @@ module.exports = class huobipro extends Exchange {
                 'precision': precision,
                 'taker': taker,
                 'maker': maker,
+                'withdrawFee': withdrawFee,
                 'limits': {
                     'amount': {
                         'min': lot,
