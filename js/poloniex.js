@@ -753,6 +753,11 @@ module.exports = class poloniex extends Exchange {
         let response = await this.privatePostReturnDepositAddresses ();
         let currencyId = this.currencyId (currency);
         let address = this.safeString (response, currencyId);
+        if(!address) {
+            await this.createDepositAddress(currency, params);
+            response = await this.privatePostReturnDepositAddresses ();
+            address = this.safeString (response, currencyId);
+        }
         this.checkAddress (address);
         let status = address ? 'ok' : 'none';
         return {
