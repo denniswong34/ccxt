@@ -545,6 +545,7 @@ module.exports = class hitbtc2 extends hitbtc {
             'USD': 'USDT',
             'EMGO': 'MGO',
             */
+        	'USD': 'USDT',
         };
         if (currency in currencies)
             return currencies[currency];
