@@ -1113,12 +1113,13 @@ module.exports = class hitbtc2 extends hitbtc {
     async withdraw (code, amount, address, tag = undefined, params = {}) {
         this.checkAddress (address);
         let currency = this.currency (code);
+        amount = parseFloat (amount);
         
         try{
         	//trying to move coin from exchange to bank before withdraw
         	await this.private_post_account_transfer({
         		'currency': currency['id'], 
-        		'amount': parseFloat (amount), 
+        		'amount': amount, 
         		'type': 'exchangeToBank'
         	});
         } catch (e) {
@@ -1127,9 +1128,11 @@ module.exports = class hitbtc2 extends hitbtc {
         
         let request = {
             'currency': currency['id'],
-            'amount': parseFloat (amount),
+            'amount': amount,
             'address': address,
+            'includeFee': true,
         };
+        
         if (tag)
             request['paymentId'] = tag;
         let response = await this.privatePostAccountCryptoWithdraw (this.extend (request, params));
