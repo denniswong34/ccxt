@@ -326,9 +326,17 @@ module.exports = class zb extends Exchange {
         if ('message' in response) {
             if (response['message'].des == "success") {
                 let address = this.safeString (response.message.datas, 'key');
+                let tag;
+                if(address.indexOf("_") != -1) {
+                    let params = address.split("_");
+                    address = params[0];
+                    tag = params[1];
+                }
+
                 return {
                     'currency': currency,
                     'address': address,
+                    'tag': tag,
                     'status': 'ok',
                     'info': response,
                 };
