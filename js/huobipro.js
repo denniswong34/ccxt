@@ -28,7 +28,6 @@ module.exports = class huobipro extends Exchange {
                 'fetchOpenOrders': true,
                 'fetchDepositAddress': true,
                 'withdraw': true,
-                'fetchDepositAddress': true,
             },
             'timeframes': {
                 '1m': '1min',
@@ -293,46 +292,6 @@ module.exports = class huobipro extends Exchange {
         }
         return allRequests;
     }
-    
-    async fetchDepositAddress (currency, params = {}) {
-        let response = {};
-        if(currency == 'XEM' || currency == 'XRP') {
-            response =  await this.privateGetDwDepositVirtualSharedAddressWithTag (this.extend ({
-                'currency': currency.toLowerCase(),
-            }, params));
-
-            if ('status' in response) {
-                if (response['status'] == "ok") {
-                    let address = this.safeString (response['data'], 'address');
-                    let tag = this.safeString (response['data'], 'tag');
-                    return {
-                        'currency': currency,
-                        'address': address,
-                        'tag': tag,
-                        'status': 'ok',
-                        'info': response,
-                    };
-                }
-            }
-        } else {
-            response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
-                'currency': currency.toLowerCase(),
-            }, params));
-
-            if ('status' in response) {
-                if (response['status'] == "ok") {
-                    let address = this.safeString (response, 'data');
-                    return {
-                        'currency': currency,
-                        'address': address,
-                        'status': 'ok',
-                        'info': response,
-                    };
-                }
-            }
-        }
-        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
-    }
 
     parseTradesData (data, market, since = undefined, limit = undefined) {
         let result = [];
@@ -562,6 +521,7 @@ module.exports = class huobipro extends Exchange {
         return await this.privatePostOrderOrdersIdSubmitcancel ({ 'id': id });
     }
 
+    /*
     async fetchDepositAddress (code, params = {}) {
         await this.loadMarkets ();
         let currency = this.currency (code);
@@ -576,6 +536,50 @@ module.exports = class huobipro extends Exchange {
             'address': address,
             'info': response,
         };
+    }
+    */
+
+    async fetchDepositAddress (code, params = {}) {
+        await this.loadMarkets ();
+        let currency = this.currency (code);
+
+        let response = {};
+        if(currency['id'] == 'XEM' || currency['id'] == 'XRP') {
+            response =  await this.privateGetDwDepositVirtualSharedAddressWithTag (this.extend ({
+                'currency': currency['id'].toLowerCase (),
+            }, params));
+
+            if ('status' in response) {
+                if (response['status'] == "ok") {
+                    let address = this.safeString (response['data'], 'address');
+                    let tag = this.safeString (response['data'], 'tag');
+                    return {
+                        'currency': code,
+                        'address': address,
+                        'tag': tag,
+                        'status': 'ok',
+                        'info': response,
+                    };
+                }
+            }
+        } else {
+            response = await this.privateGetDwDepositVirtualAddresses (this.extend ({
+                'currency': currency['id'].toLowerCase (),
+            }, params));
+
+            if ('status' in response) {
+                if (response['status'] == "ok") {
+                    let address = this.safeString (response, 'data');
+                    return {
+                        'currency': code,
+                        'address': address,
+                        'status': 'ok',
+                        'info': response,
+                    };
+                }
+            }
+        }
+        throw new ExchangeError (this.id + ' fetchDepositAddress failed: ' + this.last_http_response);
     }
 
     calculateFee (symbol, type, side, amount, price, takerOrMaker = 'taker', params = {}) {

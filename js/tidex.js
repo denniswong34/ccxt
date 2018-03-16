@@ -44,6 +44,9 @@ module.exports = class tidex extends liqui {
                         'trade-data',
                         'trade-data/{id}',
                     ],
+                    'post': [
+                        'deposits/withdraw',
+                    ]
                 },
             },
             'fees': {
@@ -57,6 +60,25 @@ module.exports = class tidex extends liqui {
         });
     }
 
+    /*
+    async withdraw (currency, amount, address, tag = undefined, params = {}) {
+        let currencys = await this.fetchCurrencies();
+        let request = {
+            'Address': address,
+            'Amount': amount,
+            'CurrencyId': currencys[currency].id,
+        };
+        let response = await this.webPostDepositsWithdraw (this.extend (request, params));
+        let id = undefined;
+        if ('data' in response) {
+            id = response['data'];
+        }
+        return {
+            'info': response,
+            'id': id,
+        };
+    }
+    */
     commonCurrencyCode (currency) {
         if (!this.substituteCommonCurrencyCodes)
             return currency;
