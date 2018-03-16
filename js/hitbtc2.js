@@ -343,32 +343,32 @@ module.exports = class hitbtc2 extends hitbtc {
                         'XMR': 0,
                         '1ST': 0,
                         '8BT': 0,
-                        'ADX': 23.3968,
-                        'AE':  30.86831297,
+                        'ADX': 0,
+                        'AE':  0,
                         'AEON': 0,
-                        'AIR': 1289.502535,
+                        'AIR': 0,
                         'AMB': 0,
-                        'AMM': 38.508432,
+                        'AMM': 0,
                         'AMP': 0,
-                        'ANT': 9.62229682,
+                        'ANT': 0,
                         'ARDR': 0,
-                        'ARN': 13.01442373,
-                        'ART': 31.85111294,
+                        'ARN': 0,
+                        'ART': 0,
                         'ATB': 0,
-                        'ATL': 38.700875940,
-                        'ATM': 1874.077017,
-                        'ATS': 1874.0771,
-                        'AVT': 12.84494186,
-                        'BAS': 685.6379331,
+                        'ATL': 0,
+                        'ATM': 0,
+                        'ATS': 0,
+                        'AVT': 0,
+                        'BAS': 0,
                         'BCN': 0,
-                        'BET': 360.3994264,
-                        'BKB': 31.47029449,
-                        'BMC': 168.3605154,
-                        'BMT': 937.0385085,
-                        'BNT': 7.75480145,
-                        'BQX': 8.1257856,
-                        'BTCA': 7207.988527,
-                        'BTM': 129.8436732,
+                        'BET': 0,
+                        'BKB': 0,
+                        'BMC': 0,
+                        'BMT': 0,
+                        'BNT': 0,
+                        'BQX': 0,
+                        'BTCA': 0,
+                        'BTM': 0,
                         'BTX': 0,
                         'BUS': 0,
                         'CCT': 0,
@@ -538,11 +538,14 @@ module.exports = class hitbtc2 extends hitbtc {
 
     commonCurrencyCode (currency) {
         let currencies = {
+        		/*
             'XBT': 'BTC',
             'DRK': 'DASH',
             'CAT': 'BitClave',
             'USD': 'USDT',
             'EMGO': 'MGO',
+            */
+        	'USD': 'USDT',
         };
         if (currency in currencies)
             return currencies[currency];
@@ -852,6 +855,31 @@ module.exports = class hitbtc2 extends hitbtc {
         let clientOrderId = parts.join ('');
         clientOrderId = clientOrderId.slice (0, 32);
         amount = parseFloat (amount);
+        
+        if(side == "sell") {
+        	try{
+            	//trying to move coin from bank to exchange before create order
+            	await this.private_post_account_transfer({
+            		'currency': market['base'], 
+            		'amount': parseFloat (amount), 
+            		'type': 'bankToExchange'
+            	});
+            } catch (e) {
+            	console.log(e);
+            }
+        } else {
+        	try{
+            	//trying to move coin from bank to exchange before create order
+            	await this.private_post_account_transfer({
+            		'currency': market['quote'], 
+            		'amount': parseFloat (amount) * price, 
+            		'type': 'bankToExchange'
+            	});
+            } catch (e) {
+            	console.log(e);
+            }
+        }
+        
         let request = {
             'clientOrderId': clientOrderId,
             'symbol': market['id'],
@@ -1086,11 +1114,26 @@ module.exports = class hitbtc2 extends hitbtc {
     async withdraw (code, amount, address, tag = undefined, params = {}) {
         this.checkAddress (address);
         let currency = this.currency (code);
+        amount = parseFloat (amount);
+        
+        try{
+        	//trying to move coin from exchange to bank before withdraw
+        	await this.private_post_account_transfer({
+        		'currency': currency['id'], 
+        		'amount': amount, 
+        		'type': 'exchangeToBank'
+        	});
+        } catch (e) {
+        	console.log(e);
+        }
+        
         let request = {
             'currency': currency['id'],
-            'amount': parseFloat (amount),
+            'amount': amount,
             'address': address,
+            'includeFee': true,
         };
+        
         if (tag)
             request['paymentId'] = tag;
         let response = await this.privatePostAccountCryptoWithdraw (this.extend (request, params));
