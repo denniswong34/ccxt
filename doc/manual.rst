@@ -190,7 +190,7 @@ The ccxt library currently supports the following 102 cryptocurrency exchange ma
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | |huobicny|             | huobicny             | `Huobi CNY <https://www.huobi.com>`__                          | 1     | `API <https://github.com/huobiapi/API_Docs/wiki/REST_api_reference>`__                            | China                                      |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
-| |huobipro|             | huobipro             | `Huobi Pro <https://www.huobi.pro>`__                          | 1     | `API <https://github.com/huobiapi/API_Docs/wiki/REST_api_reference>`__                            | China                                      |
+| |huobipro|             | huobipro             | `Huobi Pro <https://www.huobipro.com>`__                       | 1     | `API <https://github.com/huobiapi/API_Docs/wiki/REST_api_reference>`__                            | China                                      |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
 | |independentreserve|   | independentreserve   | `Independent Reserve <https://www.independentreserve.com>`__   | \*    | `API <https://www.independentreserve.com/API>`__                                                  | Australia, New Zealand                     |
 +------------------------+----------------------+----------------------------------------------------------------+-------+---------------------------------------------------------------------------------------------------+--------------------------------------------+
@@ -1035,7 +1035,7 @@ The unified ccxt API is a subset of methods common among the exchanges. It curre
 -  ``fetchClosedOrders ([symbol[, params]])``
 -  ...
 
-Note, that most of methods of the unified API accept an optional ``params`` parameter. It is an associative array (a dictionary, empty by default) containing the params you want to override. Use the ``params`` dictionary if you need to pass a custom setting or an optional parameter to your unified query.
+Note, that most of methods of the unified API accept an optional ``params`` parameter. It is an associative array (a dictionary, empty by default) containing the params you want to override. The contents of ``params`` are exchange-specific, consult the exchanges' API documentation for supported fields and values. Use the ``params`` dictionary if you need to pass a custom setting or an optional parameter to your unified query.
 
 Market Data
 ===========
@@ -1202,9 +1202,9 @@ A price ticker contains statistics for a particular market/symbol for some perio
         'high':          float, // highest price
         'low':           float, // lowest price
         'bid':           float, // current best bid (buy) price
-        'bidVolume':     float, // current best bid (buy) amount
+        'bidVolume':     float, // current best bid (buy) amount (may be missing or undefined)
         'ask':           float, // current best ask (sell) price
-        'askVolume':     float, // current best ask (sell) amount
+        'askVolume':     float, // current best ask (sell) amount (may be missing or undefined)
         'vwap':          float, // volume weighed average price
         'open':          float, // opening price
         'close':         float, // price of last trade (closing price for current period)
@@ -1369,6 +1369,8 @@ The fetchOHLCV method shown above returns a list (a flat array) of OHLCV candles
         ],
         ...
     ]
+
+Like with most other unified and implicit methods, the ``fetchOHLCV`` method accepts as its last argument an associative array (a dictionary) of extra ``params``, which is used to override default values that are sent in requests to the exchanges. The contents of ``params`` are exchange-specific, consult the exchanges' API documentation for supported fields and values.
 
 OHLCV Emulation
 ~~~~~~~~~~~~~~~
@@ -2224,6 +2226,8 @@ Below is an outline of exception inheritance hierarchy:
     |   +---+ NotSupported
     |   |
     |   +---+ AuthenticationError
+    |   |   |
+    |   |   +---+ PermissionDenied
     |   |
     |   +---+ InsufficientFunds
     |   |
@@ -2260,6 +2264,7 @@ Other exceptions derived from ``ExchangeError``:
 
 -  ``NotSupported``: This exception is raised if the endpoint is not offered/not supported by the exchange API.
 -  ``AuthenticationError``: Raised when an exchange requires one of the API credentials that you've missed to specify, or when there's a mistake in the keypair or an outdated nonce. Most of the time you need ``apiKey`` and ``secret``, sometimes you also need ``uid`` and/or ``password``.
+-  ``PermissionDenied``: Raised when there's no access for specified action or insufficient permissions on the specified ``apiKey``.
 -  ``InsufficientFunds``: This exception is raised when you don't have enough currency on your account balance to place an order.
 -  ``InvalidAddress``: This exception is raised upon encountering a bad funding address or a funding address shorter than ``.minFundingAddressLength`` (10 characters by default) in a call to ``fetchDepositAddress``, ``createDepositAddress`` or ``withdraw``.
 -  ``InvalidOrder``: This exception is the base class for all exceptions related to the unified order API.

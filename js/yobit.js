@@ -62,6 +62,25 @@ module.exports = class yobit extends liqui {
                     'withdraw': {},
                 },
             },
+            'commonCurrencies': {
+                'AIR': 'AirCoin',
+                'ANI': 'ANICoin',
+                'ANT': 'AntsCoin',
+                'ATM': 'Autumncoin',
+                'BCC': 'BCH',
+                'BCS': 'BitcoinStake',
+                'BTS': 'Bitshares2',
+                'DCT': 'Discount',
+                'DGD': 'DarkGoldCoin',
+                'ICN': 'iCoin',
+                'LIZI': 'LiZi',
+                'LUN': 'LunarCoin',
+                'MDT': 'Midnight',
+                'NAV': 'NavajoCoin',
+                'OMG': 'OMGame',
+                'PAY': 'EPAY',
+                'REP': 'Republicoin',
+            },
             'options': {
                 'fetchOrdersRequiresSymbol': true,
             },
@@ -184,14 +203,14 @@ module.exports = class yobit extends liqui {
         return this.parseBalance (result);
     }
 
-    async createDepositAddress (currency, params = {}) {
-        let response = await this.fetchDepositAddress (currency, this.extend ({
+    async createDepositAddress (code, params = {}) {
+        let response = await this.fetchDepositAddress (code, this.extend ({
             'need_new': 1,
         }, params));
         let address = this.safeString (response, 'address');
         this.checkAddress (address);
         return {
-            'currency': currency,
+            'currency': code,
             'address': address,
             'status': 'ok',
             'info': response['info'],
@@ -204,17 +223,17 @@ module.exports = class yobit extends liqui {
         return super.fetchTickers(symbols, this.extend({'chunkSize': chunkSize}, params));
     }
 
-    async fetchDepositAddress (currency, params = {}) {
-        let currencyId = this.currencyId (currency);
+    async fetchDepositAddress (code, params = {}) {
+        let currency = this.currency (code);
         let request = {
-            'coinName': currencyId,
+            'coinName': currency['id'],
             'need_new': 0,
         };
         let response = await this.privatePostGetDepositAddress (this.extend (request, params));
         let address = this.safeString (response['return'], 'address');
         this.checkAddress (address);
         return {
-            'currency': currency,
+            'currency': code,
             'address': address,
             'status': 'ok',
             'info': response,

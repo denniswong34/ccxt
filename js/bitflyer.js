@@ -20,6 +20,8 @@ module.exports = class bitflyer extends Exchange {
                 'withdraw': true,
                 'fetchOrders': true,
                 'fetchOrder': true,
+                'fetchOpenOrders': 'emulated',
+                'fetchClosedOrders': 'emulated',
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/28051642-56154182-660e-11e7-9b0d-6042d1e6edd8.jpg',
@@ -310,6 +312,16 @@ module.exports = class bitflyer extends Exchange {
         if (symbol)
             orders = this.filterBy (orders, 'symbol', symbol);
         return orders;
+    }
+
+    async fetchOpenOrders (symbol = undefined, since = undefined, limit = 100, params = {}) {
+        params['child_order_state'] = 'ACTIVE';
+        return this.fetchOrders (symbol, since, limit, params);
+    }
+
+    async fetchClosedOrders (symbol = undefined, since = undefined, limit = 100, params = {}) {
+        params['child_order_state'] = 'COMPLETED';
+        return this.fetchOrders (symbol, since, limit, params);
     }
 
     async fetchOrder (id, symbol = undefined, params = {}) {
