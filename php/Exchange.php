@@ -30,7 +30,7 @@ SOFTWARE.
 
 namespace ccxt;
 
-$version = '1.11.114';
+$version = '1.12.9';
 
 abstract class Exchange {
 
@@ -43,8 +43,8 @@ abstract class Exchange {
         'bibox',
         'binance',
         'bit2c',
+        'bitbank',
         'bitbay',
-        'bitcoincoid',
         'bitfinex',
         'bitfinex2',
         'bitflyer',
@@ -86,7 +86,9 @@ abstract class Exchange {
         'coolcoin',
         'cryptopia',
         'dsx',
+        'ethfinex',
         'exmo',
+        'exx',
         'flowbtc',
         'foxbit',
         'fybse',
@@ -102,6 +104,7 @@ abstract class Exchange {
         'huobicny',
         'huobipro',
         'independentreserve',
+        'indodax',
         'itbit',
         'jubi',
         'kraken',
@@ -547,8 +550,10 @@ abstract class Exchange {
 
     public function __construct ($options = array ()) {
 
-        $this->curl        = curl_init ();
-        $this->id          = null;
+        $this->curl         = curl_init ();
+        $this->curl_options = array (); // overrideable by user, empty by default
+
+        $this->id           = null;
 
         // rate limiter params
         $this->rateLimit   = 2000;
@@ -631,6 +636,7 @@ abstract class Exchange {
             'fetchClosedOrders' => false,
             'fetchCurrencies' => false,
             'fetchDepositAddress' => false,
+            'fetchFundingFees' => false,
             'fetchL2OrderBook' => true,
             'fetchMarkets' => true,
             'fetchMyTrades' => false,
@@ -643,6 +649,7 @@ abstract class Exchange {
             'fetchTicker' => true,
             'fetchTickers' => false,
             'fetchTrades' => true,
+            'fetchTradingFees' => false,
             'withdraw' => false,
         );
 
@@ -887,6 +894,10 @@ abstract class Exchange {
                 return $length;
             }
         );
+
+        // user-defined cURL options (if any)
+        if ($this->curl_options)
+            curl_setopt_array ($this->curl, $this->curl_options);
 
         $result = curl_exec ($this->curl);
 
@@ -1139,7 +1150,6 @@ abstract class Exchange {
     }
 
     public function parse_order_book ($orderbook, $timestamp = null, $bids_key = 'bids', $asks_key = 'asks', $price_key = 0, $amount_key = 1) {
-        $timestamp = $timestamp ? $timestamp : $this->milliseconds ();
         return array (
             'bids' => is_array ($orderbook) && array_key_exists ($bids_key, $orderbook) ?
                 $this->parse_bids_asks ($orderbook[$bids_key], $price_key, $amount_key) :
@@ -1148,7 +1158,8 @@ abstract class Exchange {
                 $this->parse_bids_asks ($orderbook[$asks_key], $price_key, $amount_key) :
                 array (),
             'timestamp' => $timestamp,
-            'datetime' => $this->iso8601 ($timestamp),
+            'datetime' => isset ($timestamp) ? $this->iso8601 ($timestamp) : null,
+            'nonce' => null,
         );
     }
 
@@ -1251,7 +1262,7 @@ abstract class Exchange {
                 return $grouped[$symbol];
             return array ();
         }
-        return $orders;
+        return $array;
     }
 
     public function filterBySymbol ($orders, $symbol = null) {

@@ -191,7 +191,24 @@ module.exports = class poloniex extends Exchange {
                 'base': base,
                 'quote': quote,
                 'active': true,
-                'lot': this.limits['amount']['min'],
+                'precision': {
+                    'amount': 8,
+                    'price': 8,
+                },
+                'limits': {
+                    'amount': {
+                        'min': 0.00000001,
+                        'max': 1000000000,
+                    },
+                    'price': {
+                        'min': 0.00000001,
+                        'max': 1000000000,
+                    },
+                    'cost': {
+                        'min': 0.00000000,
+                        'max': 1000000000,
+                    },
+                },
                 'info': market,
             }));
         }
@@ -239,8 +256,10 @@ module.exports = class poloniex extends Exchange {
         };
         if (typeof limit !== 'undefined')
             request['depth'] = limit; // 100
-        let orderbook = await this.publicGetReturnOrderBook (this.extend (request, params));
-        return this.parseOrderBook (orderbook);
+        let response = await this.publicGetReturnOrderBook (this.extend (request, params));
+        let orderbook = this.parseOrderBook (response);
+        orderbook['nonce'] = this.safeInteger (response, 'sec');
+        return orderbook;
     }
 
     parseTicker (ticker, market = undefined) {
@@ -265,7 +284,9 @@ module.exports = class poloniex extends Exchange {
             'high': parseFloat (ticker['high24hr']),
             'low': parseFloat (ticker['low24hr']),
             'bid': parseFloat (ticker['highestBid']),
+            'bidVolume': undefined,
             'ask': parseFloat (ticker['lowestAsk']),
+            'askVolume': undefined,
             'vwap': undefined,
             'open': open,
             'close': last,
@@ -472,13 +493,16 @@ module.exports = class poloniex extends Exchange {
         if (market)
             symbol = market['symbol'];
         let price = this.safeFloat (order, 'price');
-        let cost = this.safeFloat (order, 'total', 0.0);
         let remaining = this.safeFloat (order, 'amount');
         let amount = this.safeFloat (order, 'startingAmount', remaining);
         let filled = undefined;
+        let cost = 0;
         if (typeof amount !== 'undefined') {
-            if (typeof remaining !== 'undefined')
+            if (typeof remaining !== 'undefined') {
                 filled = amount - remaining;
+                if (typeof price !== 'undefined')
+                    cost = filled * price;
+            }
         }
         if (typeof filled === 'undefined') {
             if (typeof trades !== 'undefined') {
