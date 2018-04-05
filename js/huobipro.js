@@ -112,7 +112,7 @@ module.exports = class huobipro extends Exchange {
         });
     }
 
-    parseMarkets (markets) {
+   async  parseMarkets (markets) {
         let numMarkets = markets.length;
         if (numMarkets < 1)
             throw new ExchangeError (this.id + ' publicGetCommonSymbols returned empty response: ' + this.json (markets));
