@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.12.9'
+__version__ = '1.12.87'
 
 # -----------------------------------------------------------------------------
 
@@ -15,6 +15,10 @@ from ccxt.base.errors import DDoSProtection
 from ccxt.base.errors import RequestTimeout
 from ccxt.base.errors import ExchangeNotAvailable
 from ccxt.base.errors import InvalidAddress
+
+# -----------------------------------------------------------------------------
+
+from ccxt.base.decimal_to_precision import DECIMAL_PLACES
 
 # -----------------------------------------------------------------------------
 
@@ -152,7 +156,6 @@ class Exchange(object):
         'fetchClosedOrders': False,
         'fetchCurrencies': False,
         'fetchDepositAddress': False,
-        'fetchFees': False,
         'fetchFundingFees': False,
         'fetchL2OrderBook': True,
         'fetchMarkets': True,
@@ -169,6 +172,8 @@ class Exchange(object):
         'fetchTradingFees': False,
         'withdraw': False,
     }
+
+    precisionMode = DECIMAL_PLACES
 
     minFundingAddressLength = 10  # used in check_address
     substituteCommonCurrencyCodes = True
@@ -882,7 +887,7 @@ class Exchange(object):
     def load_fees(self):
         self.load_markets()
         self.populate_fees()
-        if not self.has['fetchFees']:
+        if not (self.has['fetchTradingFees'] or self.has['fetchFundingFees']):
             return self.fees
 
         fetched_fees = self.fetch_fees()

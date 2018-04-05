@@ -16,6 +16,9 @@ from ccxt.base.errors import InvalidOrder
 from ccxt.base.errors import OrderNotFound
 from ccxt.base.errors import DDoSProtection
 from ccxt.base.errors import InvalidNonce
+from ccxt.base.decimal_to_precision import ROUND
+from ccxt.base.decimal_to_precision import TRUNCATE
+from ccxt.base.decimal_to_precision import SIGNIFICANT_DIGITS
 
 
 class bitfinex (Exchange):
@@ -34,14 +37,13 @@ class bitfinex (Exchange):
                 'deposit': True,
                 'fetchClosedOrders': True,
                 'fetchDepositAddress': True,
-                'fetchFees': True,
+                'fetchTradingFees': True,
                 'fetchFundingFees': True,
                 'fetchMyTrades': True,
                 'fetchOHLCV': True,
                 'fetchOpenOrders': True,
                 'fetchOrder': True,
                 'fetchTickers': True,
-                'fetchTradingFees': True,
                 'withdraw': True,
             },
             'timeframes': {
@@ -259,6 +261,7 @@ class bitfinex (Exchange):
                     'Invalid order': InvalidOrder,  # ?
                 },
             },
+            'precisionMode': SIGNIFICANT_DIGITS,
         })
 
     async def fetch_funding_fees(self, params={}):
@@ -288,21 +291,6 @@ class bitfinex (Exchange):
             'maker': self.safe_float(response, 'maker_fee'),
             'taker': self.safe_float(response, 'taker_fee'),
         }
-
-    async def load_fees(self):
-        #  # PHP does flat copying for arrays
-        #  # setting fees on the exchange instance isn't portable, unfortunately...
-        #  # self should probably go into the base class as well
-        # funding = self.fees['funding']
-        # fees = await self.fetch_funding_fees()
-        # funding = self.deep_extend(funding, fees)
-        # return funding
-        raise NotSupported(self.id + ' loadFees() not implemented yet')
-
-    async def fetch_fees(self):
-        fundingFees = await self.fetch_funding_fees()
-        tradingFees = await self.fetch_trading_fees()
-        return self.deep_extend(fundingFees, tradingFees)
 
     async def fetch_markets(self):
         markets = await self.publicGetSymbolsDetails()
@@ -343,10 +331,33 @@ class bitfinex (Exchange):
                 'active': True,
                 'precision': precision,
                 'limits': limits,
-                'lot': math.pow(10, -precision['amount']),
                 'info': market,
             })
         return result
+
+    def cost_to_precision(self, symbol, cost):
+        return self.decimal_to_precision(cost, ROUND, self.markets[symbol]['precision']['price'], self.precisionMode)
+
+    def price_to_precision(self, symbol, price):
+        return self.decimal_to_precision(price, ROUND, self.markets[symbol]['precision']['price'], self.precisionMode)
+
+    def amount_to_precision(self, symbol, amount):
+        return self.decimal_to_precision(amount, TRUNCATE, self.markets[symbol]['precision']['amount'], self.precisionMode)
+
+    def fee_to_precision(self, currency, fee):
+        return self.decimal_to_precision(fee, ROUND, self.currencies[currency]['precision'], self.precisionMode)
+
+    def calculate_fee(self, symbol, type, side, amount, price, takerOrMaker='taker', params={}):
+        market = self.markets[symbol]
+        rate = market[takerOrMaker]
+        cost = amount * price
+        key = 'quote'
+        return {
+            'type': takerOrMaker,
+            'currency': market[key],
+            'rate': rate,
+            'cost': float(self.fee_to_precision(market[key], rate * cost)),
+        }
 
     async def fetch_balance(self, params={}):
         await self.load_markets()
@@ -446,7 +457,7 @@ class bitfinex (Exchange):
         cost = price * amount
         fee = None
         if 'fee_amount' in trade:
-            feeCost = self.safe_float(trade, 'fee_amount')
+            feeCost = -self.safe_float(trade, 'fee_amount')
             feeCurrency = self.safe_string(trade, 'fee_currency')
             if feeCurrency in self.currencies_by_id:
                 feeCurrency = self.currencies_by_id[feeCurrency]['code']
@@ -607,7 +618,7 @@ class bitfinex (Exchange):
         request = {
             'symbol': v2id,
             'timeframe': self.timeframes[timeframe],
-            'sort': '-1',
+            'sort': 1,
             'limit': limit,
             'start': since,
         }

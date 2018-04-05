@@ -30,7 +30,19 @@ SOFTWARE.
 
 namespace ccxt;
 
-$version = '1.12.9';
+$version = '1.12.87';
+
+// rounding mode
+const TRUNCATE = 0;
+const ROUND = 1;
+
+// digits counting mode
+const DECIMAL_PLACES = 0;
+const SIGNIFICANT_DIGITS = 1;
+
+// padding mode
+const NO_PADDING = 0;
+const PAD_WITH_ZERO = 1;
 
 abstract class Exchange {
 
@@ -76,11 +88,14 @@ abstract class Exchange {
         'cobinhood',
         'coincheck',
         'coinegg',
+        'coinex',
         'coinexchange',
         'coinfloor',
         'coingi',
         'coinmarketcap',
         'coinmate',
+        'coinnest',
+        'coinone',
         'coinsecure',
         'coinspot',
         'coolcoin',
@@ -98,11 +113,13 @@ abstract class Exchange {
         'gdax',
         'gemini',
         'getbtc',
+        'hadax',
         'hitbtc',
         'hitbtc2',
         'huobi',
         'huobicny',
         'huobipro',
+        'ice3x',
         'independentreserve',
         'indodax',
         'itbit',
@@ -111,12 +128,14 @@ abstract class Exchange {
         'kucoin',
         'kuna',
         'lakebtc',
+        'lbank',
         'liqui',
         'livecoin',
         'luno',
         'lykke',
         'mercado',
         'mixcoins',
+        'negociecoins',
         'nova',
         'okcoincny',
         'okcoinusd',
@@ -653,6 +672,8 @@ abstract class Exchange {
             'withdraw' => false,
         );
 
+        $this->precisionMode = DECIMAL_PLACES;
+
         $this->lastRestRequestTimestamp = 0;
         $this->lastRestPollTimestamp    = 0;
         $this->restRequestQueue         = null;
@@ -896,7 +917,7 @@ abstract class Exchange {
         );
 
         // user-defined cURL options (if any)
-        if ($this->curl_options)
+        if (!empty($this->curl_options))
             curl_setopt_array ($this->curl, $this->curl_options);
 
         $result = curl_exec ($this->curl);
@@ -1718,6 +1739,83 @@ abstract class Exchange {
 
         $old_feature = "has{$feature}";
         return array_key_exists ($old_feature, $old_feature_map) ? $old_feature_map[$old_feature] : false;
+    }
+
+    public static function decimalToPrecision ($x, $roundingMode = ROUND, $numPrecisionDigits = null, $countingMode = DECIMAL_PLACES, $paddingMode = NO_PADDING) {
+        return static::decimal_to_precision ($x, $roundingMode, $numPrecisionDigits, $countingMode, $paddingMode);
+    }
+
+    public static function decimal_to_precision ($x, $roundingMode = ROUND, $numPrecisionDigits = null, $countingMode = DECIMAL_PLACES, $paddingMode = NO_PADDING) {
+        if ($numPrecisionDigits < 0) {
+            throw new BaseError ('Negative precision is not yet supported');
+        }
+
+        if (!is_int ($numPrecisionDigits)) {
+            throw new BaseError ('Precision must be an integer');
+        }
+
+        if (!is_numeric ($x)) {
+            throw new BaseError ('Invalid number');
+        }
+
+        $result = '';
+        if ($roundingMode === ROUND) {
+            if ($countingMode === DECIMAL_PLACES) {
+                $result = (string) round ($x, $numPrecisionDigits, PHP_ROUND_HALF_EVEN);
+            } elseif ($countingMode === SIGNIFICANT_DIGITS) {
+                $significantPosition = log (abs ($x), 10) % 10;
+                if ($significantPosition > 0) {
+                    $significantPosition += 1;
+                }
+                $result = (string) round ($x, $numPrecisionDigits - $significantPosition, PHP_ROUND_HALF_EVEN);
+            }
+        } elseif ($roundingMode === TRUNCATE) {
+            $dotPosition = strpos ($x, '.') ?: 0;
+            if ($countingMode === DECIMAL_PLACES) {
+                $result = substr ($x, 0, ($dotPosition ? $dotPosition + 1 : 0) + $numPrecisionDigits);
+            } elseif ($countingMode === SIGNIFICANT_DIGITS) {
+                $significantPosition = log (abs ($x), 10) % 10;
+                $start = $dotPosition - $significantPosition;
+                $end   = $start + $numPrecisionDigits;
+                if ($dotPosition >= $end) {
+                    $end -= 1;
+                }
+                if ($significantPosition < 0) {
+                    $end += 1;
+                }
+                $result = str_pad (substr ($x, 0, $end), $dotPosition, '0');
+            }
+        }
+
+        $hasDot = strpos ($result, '.') !== false;
+        if ($paddingMode === NO_PADDING) {
+            if ($hasDot) {
+                $result = rtrim ($result, '0.');
+            }
+        } elseif ($paddingMode === PAD_WITH_ZERO) {
+            if ($hasDot) {
+                if ($countingMode === DECIMAL_PLACES) {
+                    list ($before, $after) = explode ('.', $result, 2);
+                    $result = $before . '.' . str_pad ($after, $numPrecisionDigits, '0');
+                } elseif ($countingMode === SIGNIFICANT_DIGITS) {
+                    if ($result < 1) {
+                        $result = str_pad ($result, strcspn ($result, '123456789') + $numPrecisionDigits, '0');
+                    }
+                }
+            } else {
+                if ($countingMode === DECIMAL_PLACES) {
+                    if ($numPrecisionDigits > 0) {
+                        $result = $result . '.' . str_repeat ('0', $numPrecisionDigits);
+                    }
+                } elseif ($countingMode === SIGNIFICANT_DIGITS) {
+                    if ($numPrecisionDigits > strlen ($result)) {
+                        $result = $result . '.' . str_repeat ('0', ($numPrecisionDigits - strlen ($result)));
+                    }
+                }
+            }
+        }
+
+        return $result;
     }
 
 }

@@ -46,6 +46,7 @@ class bitmex (Exchange):
                     'https://www.bitmex.com/app/apiOverview',
                     'https://github.com/BitMEX/api-connectors/tree/master/official-http',
                 ],
+                'fees': 'https://www.bitmex.com/app/fees',
             },
             'api': {
                 'public': {
@@ -308,7 +309,7 @@ class bitmex (Exchange):
         }
 
     def parse_ohlcv(self, ohlcv, market=None, timeframe='1m', since=None, limit=None):
-        timestamp = self.parse8601(ohlcv['timestamp'])
+        timestamp = self.parse8601(ohlcv['timestamp']) - self.parse_timeframe(timeframe) * 1000
         return [
             timestamp,
             ohlcv['open'],
@@ -318,7 +319,7 @@ class bitmex (Exchange):
             ohlcv['volume'],
         ]
 
-    def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=100, params={}):
+    def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
         self.load_markets()
         # send JSON key/value pairs, such as {"key": "value"}
         # filter by individual fields and do advanced queries on timestamps
@@ -331,13 +332,14 @@ class bitmex (Exchange):
             'symbol': market['id'],
             'binSize': self.timeframes[timeframe],
             'partial': True,     # True == include yet-incomplete current bins
-            'count': limit,      # default 100, max 500
             # 'filter': filter,  # filter by individual fields and do advanced queries
             # 'columns': [],    # will return all columns if omitted
             # 'start': 0,       # starting point for results(wtf?)
             # 'reverse': False,  # True == newest first
             # 'endTime': '',    # ending date filter for results
         }
+        if limit is not None:
+            request['count'] = limit  # default 100, max 500
         # if since is not set, they will return candles starting from 2017-01-01
         if since is not None:
             ymdhms = self.ymdhms(since)
