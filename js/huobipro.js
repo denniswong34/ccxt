@@ -136,6 +136,7 @@ module.exports = class huobipro extends Exchange {
             let taker = (base === 'OMG') ? 0 : 0.2 / 100;
 
             let withdrawFee;
+            let response;
             try{
                 response = await this.privateGetDwWithdrawVirtualFee ({'currency': baseId}, {});
                 if(response['status'] == 'ok'){
